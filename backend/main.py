@@ -57,7 +57,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled exception: %s", exc)
     return JSONResponse(
         status_code=500,
-        content={"detail": f"{type(exc).__name__}: {exc}"},
+        content={"detail": "Internal server error"},
         headers=headers,
     )
 
@@ -75,5 +75,4 @@ def root():
 
 @app.get("/health")
 def health():
-    import sys
-    return {"status": "ok", "py": sys.version, "build": "debug-v3"}
+    return {"status": "ok"}

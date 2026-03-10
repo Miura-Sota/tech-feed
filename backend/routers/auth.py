@@ -37,23 +37,17 @@ class MeOut(BaseModel):
 
 @router.post("/register", response_model=AuthOut, status_code=201)
 def register(body: RegisterIn, db: Session = Depends(get_db)):
-    try:
-        if len(body.password) < 8:
-            raise HTTPException(status_code=422, detail="Password must be at least 8 characters")
-        existing = db.query(User).filter(User.email == body.email).first()
-        if existing:
-            raise HTTPException(status_code=409, detail="Email already registered")
-        user = User(email=body.email, hashed_password=hash_password(body.password))
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        token = create_access_token(user.id, user.email)
-        return AuthOut(access_token=token, user_id=user.id, email=user.email, is_admin=user.is_admin)
-    except HTTPException:
-        raise
-    except Exception as e:
-        import traceback
-        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e} | {traceback.format_exc()}")
+    if len(body.password) < 8:
+        raise HTTPException(status_code=422, detail="Password must be at least 8 characters")
+    existing = db.query(User).filter(User.email == body.email).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Email already registered")
+    user = User(email=body.email, hashed_password=hash_password(body.password))
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    token = create_access_token(user.id, user.email)
+    return AuthOut(access_token=token, user_id=user.id, email=user.email, is_admin=user.is_admin)
 
 
 @router.post("/login", response_model=AuthOut)
