@@ -1,7 +1,7 @@
 import React from "react";
 import ArticleCard from "./ArticleCard";
 
-export default function TodaysPicks({ articles, onTagClick, selectedTag }) {
+export default function TodaysPicks({ articles, onTagClick, selectedTag, readIds, bookmarkedIds, onRead, onBookmark }) {
   const picks = articles.filter((a) => a.is_picked);
 
   if (picks.length === 0) return null;
@@ -29,7 +29,16 @@ export default function TodaysPicks({ articles, onTagClick, selectedTag }) {
         }}
       >
         {picks.map((article) => (
-          <ArticleCard key={article.id} article={article} onTagClick={onTagClick} selectedTag={selectedTag} />
+          <ArticleCard
+            key={article.id}
+            article={article}
+            onTagClick={onTagClick}
+            selectedTag={selectedTag}
+            isRead={readIds?.has(article.id)}
+            isBookmarked={bookmarkedIds?.has(article.id)}
+            onRead={onRead}
+            onBookmark={onBookmark}
+          />
         ))}
       </div>
     </section>

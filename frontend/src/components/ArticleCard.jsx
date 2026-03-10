@@ -16,7 +16,7 @@ function tagColor(tag) {
   return TAG_COLORS[hash % TAG_COLORS.length];
 }
 
-export default function ArticleCard({ article, onTagClick, selectedTag }) {
+export default function ArticleCard({ article, onTagClick, selectedTag, isRead, isBookmarked, onRead, onBookmark }) {
   const src = SOURCE_COLORS[article.source] ?? { bg: "#f5f5f5", border: "#999", text: "#555" };
   const tags = article.tags ? article.tags.split(",").map((t) => t.trim()).filter(Boolean) : [];
 
@@ -31,10 +31,32 @@ export default function ArticleCard({ article, onTagClick, selectedTag }) {
         display: "flex",
         flexDirection: "column",
         gap: 10,
+        opacity: isRead ? 0.5 : 1,
+        position: "relative",
       }}
     >
-      {/* ソースバッジ + おすすめバッジ */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      {/* ブックマークボタン */}
+      <button
+        onClick={() => onBookmark?.(article)}
+        title={isBookmarked ? "ブックマーク解除" : "ブックマーク"}
+        style={{
+          position: "absolute",
+          top: 12,
+          right: 12,
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          fontSize: 20,
+          lineHeight: 1,
+          padding: 2,
+          color: isBookmarked ? "#f59e0b" : "#cbd5e1",
+        }}
+      >
+        {isBookmarked ? "★" : "☆"}
+      </button>
+
+      {/* ソースバッジ + おすすめバッジ + 読済バッジ */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <span
           style={{
             background: src.bg,
@@ -64,10 +86,25 @@ export default function ArticleCard({ article, onTagClick, selectedTag }) {
             ★ おすすめ
           </span>
         )}
+        {isRead && (
+          <span
+            style={{
+              background: "#f1f5f9",
+              color: "#94a3b8",
+              border: "1px solid #cbd5e1",
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 600,
+              padding: "2px 8px",
+            }}
+          >
+            読済
+          </span>
+        )}
       </div>
 
       {/* タイトル */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.4 }}>
+      <h3 style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.4, paddingRight: 28 }}>
         <a
           href={article.url}
           target="_blank"
@@ -75,6 +112,7 @@ export default function ArticleCard({ article, onTagClick, selectedTag }) {
           style={{ color: "#1a1a2e" }}
           onMouseOver={(e) => (e.currentTarget.style.color = "#3ea8ff")}
           onMouseOut={(e) => (e.currentTarget.style.color = "#1a1a2e")}
+          onClick={() => onRead?.(article.id)}
         >
           {article.title}
         </a>

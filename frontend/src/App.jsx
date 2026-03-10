@@ -4,6 +4,9 @@ import ArticleList from "./components/ArticleList";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
+const LS_READ = "tech-feed:read";
+const LS_BOOKMARKS = "tech-feed:bookmarks";
+
 export default function App() {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,6 +15,18 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [selectedTag, setSelectedTag] = useState(null);
+  const [activeTab, setActiveTab] = useState("today");
+  const [readIds, setReadIds] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(LS_READ) ?? "[]");
+      return new Set(stored);
+    } catch { return new Set(); }
+  });
+  const [bookmarkedArticles, setBookmarkedArticles] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(LS_BOOKMARKS) ?? "[]");
+    } catch { return []; }
+  });
 
   const loadTodayArticles = useCallback(async () => {
     setLoading(true);
@@ -47,6 +62,27 @@ export default function App() {
       setFetching(false);
     }
   };
+
+  const handleRead = useCallback((id) => {
+    setReadIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      localStorage.setItem(LS_READ, JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+
+  const handleBookmark = useCallback((article) => {
+    setBookmarkedArticles((prev) => {
+      const exists = prev.some((a) => a.id === article.id);
+      const next = exists ? prev.filter((a) => a.id !== article.id) : [...prev, article];
+      localStorage.setItem(LS_BOOKMARKS, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const bookmarkedIds = useMemo(() => new Set(bookmarkedArticles.map((a) => a.id)), [bookmarkedArticles]);
 
   const handleTagClick = (tag) => {
     setSelectedTag((prev) => (prev === tag ? null : tag));
@@ -176,6 +212,31 @@ export default function App() {
             }}
           />
         </div>
+
+        {/* タブ */}
+        <div style={{ maxWidth: 900, margin: "12px auto 0", padding: "0 24px", display: "flex", gap: 4 }}>
+          {[
+            { key: "today", label: "今日" },
+            { key: "bookmarks", label: `ブックマーク ${bookmarkedArticles.length}件` },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              style={{
+                background: activeTab === key ? "#3ea8ff" : "transparent",
+                color: activeTab === key ? "#fff" : "#94a3b8",
+                border: activeTab === key ? "none" : "1px solid #475569",
+                borderRadius: 8,
+                padding: "6px 16px",
+                cursor: "pointer",
+                fontSize: 14,
+                fontWeight: activeTab === key ? 700 : 400,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </header>
 
       {/* メインコンテンツ */}
@@ -196,10 +257,27 @@ export default function App() {
           </div>
         )}
 
-        {loading ? (
+        {loading && activeTab === "today" ? (
           <div style={{ textAlign: "center", padding: 60, color: "#64748b" }}>
             <p style={{ fontSize: 16 }}>記事を読み込み中...</p>
           </div>
+        ) : activeTab === "bookmarks" ? (
+          <>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1a1a2e", marginBottom: 20 }}>
+              ブックマーク ({bookmarkedArticles.length} 件)
+            </h2>
+            <ArticleList
+              articles={bookmarkedArticles}
+              onTagClick={handleTagClick}
+              selectedTag={selectedTag}
+              showAll
+              readIds={readIds}
+              bookmarkedIds={bookmarkedIds}
+              onRead={handleRead}
+              onBookmark={handleBookmark}
+              emptyMessage="ブックマークがありません。記事の☆ボタンで追加できます。"
+            />
+          </>
         ) : (
           <>
             {/* 統計バー / フィルター表示 */}
@@ -253,11 +331,36 @@ export default function App() {
             )}
 
             {isFiltering ? (
-              <ArticleList articles={filteredArticles} onTagClick={handleTagClick} selectedTag={selectedTag} showAll />
+              <ArticleList
+                articles={filteredArticles}
+                onTagClick={handleTagClick}
+                selectedTag={selectedTag}
+                showAll
+                readIds={readIds}
+                bookmarkedIds={bookmarkedIds}
+                onRead={handleRead}
+                onBookmark={handleBookmark}
+              />
             ) : (
               <>
-                <TodaysPicks articles={articles} onTagClick={handleTagClick} selectedTag={selectedTag} />
-                <ArticleList articles={articles} onTagClick={handleTagClick} selectedTag={selectedTag} />
+                <TodaysPicks
+                  articles={articles}
+                  onTagClick={handleTagClick}
+                  selectedTag={selectedTag}
+                  readIds={readIds}
+                  bookmarkedIds={bookmarkedIds}
+                  onRead={handleRead}
+                  onBookmark={handleBookmark}
+                />
+                <ArticleList
+                  articles={articles}
+                  onTagClick={handleTagClick}
+                  selectedTag={selectedTag}
+                  readIds={readIds}
+                  bookmarkedIds={bookmarkedIds}
+                  onRead={handleRead}
+                  onBookmark={handleBookmark}
+                />
               </>
             )}
           </>
