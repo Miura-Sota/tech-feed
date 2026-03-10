@@ -63,6 +63,17 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    fetch(`${API_BASE}/read-marks/`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => {
+        const ids = new Set(data.map((r) => r.article_id));
+        setReadIds(ids);
+        localStorage.setItem(LS_READ, JSON.stringify([...ids]));
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     fetch(`${API_BASE}/bookmarks/`)
       .then((r) => r.ok ? r.json() : [])
       .then((data) => setBookmarkedArticles(data))
@@ -121,6 +132,7 @@ export default function App() {
       if (prev.has(id)) return prev;
       const next = new Set(prev);
       next.add(id);
+      fetch(`${API_BASE}/read-marks/${id}`, { method: "POST" }).catch(() => {});
       localStorage.setItem(LS_READ, JSON.stringify([...next]));
       return next;
     });

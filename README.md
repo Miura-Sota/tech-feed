@@ -20,7 +20,7 @@ Zenn/QiitaのRSS記事をAIが要約・タグ付け・ピックアップして�
 - **今日のおすすめ** — Zenn/Qiitaから取得した当日の記事をAI要約・タグ付きで表示
 - **AIおすすめ3本** — AIが特に有益な記事を3本ピックアップ
 - **検索・タグフィルター** — タイトル・要約・タグでリアルタイム絞り込み
-- **既読マーク** — 読んだ記事を半透明で表示（ローカル保存）
+- **既読マーク（DB保存）** — 読んだ記事を半透明で表示。DBに永続化されるため、デバイスをまたいでも既読状態が同期される（オフライン時はlocalStorageにフォールバック）
 - **ブックマーク（DB保存）** — 記事をブックマーク保存。DBに永続化されるため、デバイスをまたいでも保持される
 - **好みのタグ設定** — 好みのタグを選択すると、タグ別RSSフィードも追加取得してAIのおすすめ選定に反映。好みタグが設定されている場合は一致する記事のみ表示（フィルタリング）。複数タグ設定時はOR/ANDの切り替えが可能（設定画面で即時変更・localStorage保存）。「すべてクリア」ボタンでタグ・キーワードを一括リセット・即時保存可能
 - **好みのキーワード設定** — フリーキーワード（例: Next.js, Wasm）を設定すると、AIおすすめ選定と記事ハイライトに反映
@@ -88,6 +88,9 @@ npm run dev
 | GET | /bookmarks/ | ブックマーク済み記事一覧 |
 | POST | /bookmarks/{article_id} | ブックマーク追加 |
 | DELETE | /bookmarks/{article_id} | ブックマーク解除 |
+| GET | /read-marks/ | 既読マーク一覧 |
+| POST | /read-marks/{article_id} | 既読追加 |
+| DELETE | /read-marks/{article_id} | 既読解除 |
 | GET | /health | ヘルスチェック |
 
 ---
@@ -99,7 +102,7 @@ tech-feed/
   backend/
     main.py          - FastAPIアプリ起動
     database.py      - DB接続・セッション
-    models.py        - Article, Feed, Preferences, Bookmark モデル
+    models.py        - Article, Feed, Preferences, Bookmark, ReadMark モデル
     scheduler.py     - 毎日07:00 JST 自動フェッチ
     rss_service.py   - RSS取得 (feedparser, タグ別・カスタムフィード対応)
     ai_service.py    - Claude API (要約・タグ・ピックアップ)
@@ -107,6 +110,7 @@ tech-feed/
       articles.py    - 記事APIエンドポイント
       settings.py    - 設定APIエンドポイント（preferences + feeds）
       bookmarks.py   - ブックマークAPIエンドポイント
+      read_marks.py  - 既読マークAPIエンドポイント
     requirements.txt
   frontend/
     src/

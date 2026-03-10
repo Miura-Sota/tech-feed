@@ -31,6 +31,14 @@ class Bookmark(Base):
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 
+class ReadMark(Base):
+    __tablename__ = "read_marks"
+
+    id = Column(Integer, primary_key=True)
+    article_id = Column(Integer, ForeignKey("articles.id"), unique=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
 class Article(Base):
     __tablename__ = "articles"
 
