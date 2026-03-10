@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { login, register } from "../api";
 
-export default function AuthPage({ onAuth }) {
+export default function AuthPage({ onAuth, onClose }) {
   const [tab, setTab] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,8 +28,8 @@ export default function AuthPage({ onAuth }) {
   return (
     <div
       style={{
-        minHeight: "100vh",
-        background: "#f0f2f5",
+        minHeight: onClose ? "100%" : "100vh",
+        background: onClose ? "transparent" : "#f0f2f5",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -43,8 +43,27 @@ export default function AuthPage({ onAuth }) {
           width: "100%",
           maxWidth: 400,
           boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
+          position: "relative",
         }}
       >
+        {onClose && (
+          <button
+            onClick={onClose}
+            style={{
+              position: "absolute",
+              top: 12,
+              right: 12,
+              background: "transparent",
+              border: "none",
+              fontSize: 20,
+              color: "#64748b",
+              cursor: "pointer",
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        )}
         <h1
           style={{
             fontSize: 24,

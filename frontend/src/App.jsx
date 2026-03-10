@@ -37,6 +37,7 @@ export default function App() {
   const [tagFilterMode, setTagFilterMode] = useState(() =>
     localStorage.getItem("tech-feed:tagFilterMode") ?? "or"
   );
+  const [showAuth, setShowAuth] = useState(false);
 
   const handleAuth = useCallback((userData) => {
     setAuthUser(userData);
@@ -53,7 +54,6 @@ export default function App() {
     localStorage.removeItem(LS_USER);
     localStorage.removeItem(LS_READ);
     setAuthUser(null);
-    setArticles([]);
     setReadIds(new Set());
     setBookmarkedArticles([]);
   }, []);
@@ -89,9 +89,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!authUser) return;
     loadTodayArticles();
-  }, [authUser, loadTodayArticles]);
+  }, [loadTodayArticles]);
 
   useEffect(() => {
     if (!authUser) return;
@@ -169,6 +168,7 @@ export default function App() {
   };
 
   const handleRead = useCallback((id) => {
+    if (!authUser) return;
     setReadIds((prev) => {
       if (prev.has(id)) return prev;
       const next = new Set(prev);
@@ -177,9 +177,10 @@ export default function App() {
       localStorage.setItem(LS_READ, JSON.stringify([...next]));
       return next;
     });
-  }, []);
+  }, [authUser]);
 
   const handleBookmark = useCallback((article) => {
+    if (!authUser) { setShowAuth(true); return; }
     setBookmarkedArticles((prev) => {
       const isCurrentlyBookmarked = prev.some((a) => a.id === article.id);
       if (isCurrentlyBookmarked) {
@@ -190,7 +191,7 @@ export default function App() {
         return [...prev, article];
       }
     });
-  }, []);
+  }, [authUser]);
 
   const bookmarkedIds = useMemo(() => new Set(bookmarkedArticles.map((a) => a.id)), [bookmarkedArticles]);
 
@@ -242,13 +243,19 @@ export default function App() {
     weekday: "short",
   });
 
-  // 未認証時は AuthPage を表示
-  if (!authUser) {
-    return <AuthPage onAuth={handleAuth} />;
-  }
-
   return (
     <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
+      {showAuth && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.6)" }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAuth(false); }}
+        >
+          <AuthPage
+            onAuth={(userData) => { handleAuth(userData); setShowAuth(false); }}
+            onClose={() => setShowAuth(false)}
+          />
+        </div>
+      )}
       {/* ヘッダー */}
       <header
         style={{
@@ -279,59 +286,79 @@ export default function App() {
             </p>
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <span style={{ fontSize: 12, color: "#64748b" }}>{authUser.email}</span>
-            {lastUpdated && (
-              <span style={{ fontSize: 12, color: "#64748b" }}>
-                更新: {lastUpdated.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
-              </span>
-            )}
-            <button
-              onClick={loadTodayArticles}
-              disabled={loading}
-              style={{
-                background: "transparent",
-                border: "1px solid #475569",
-                color: "#94a3b8",
-                borderRadius: 8,
-                padding: "8px 16px",
-                cursor: loading ? "not-allowed" : "pointer",
-                fontSize: 14,
-              }}
-            >
-              {loading ? "読込中..." : "更新"}
-            </button>
-            {authUser.is_admin && (
+            {authUser ? (
+              <>
+                <span style={{ fontSize: 12, color: "#64748b" }}>{authUser.email}</span>
+                {lastUpdated && (
+                  <span style={{ fontSize: 12, color: "#64748b" }}>
+                    更新: {lastUpdated.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                )}
+                <button
+                  onClick={loadTodayArticles}
+                  disabled={loading}
+                  style={{
+                    background: "transparent",
+                    border: "1px solid #475569",
+                    color: "#94a3b8",
+                    borderRadius: 8,
+                    padding: "8px 16px",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    fontSize: 14,
+                  }}
+                >
+                  {loading ? "読込中..." : "更新"}
+                </button>
+                {authUser.is_admin && (
+                  <button
+                    onClick={handleFetch}
+                    disabled={fetching}
+                    style={{
+                      background: fetching ? "#475569" : "#3ea8ff",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "8px 18px",
+                      cursor: fetching ? "not-allowed" : "pointer",
+                      fontSize: 14,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {fetching ? "取得中..." : "今すぐ取得"}
+                  </button>
+                )}
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    background: "transparent",
+                    border: "1px solid #475569",
+                    color: "#94a3b8",
+                    borderRadius: 8,
+                    padding: "8px 16px",
+                    cursor: "pointer",
+                    fontSize: 14,
+                  }}
+                >
+                  ログアウト
+                </button>
+              </>
+            ) : (
               <button
-                onClick={handleFetch}
-                disabled={fetching}
+                onClick={() => setShowAuth(true)}
                 style={{
-                  background: fetching ? "#475569" : "#3ea8ff",
+                  background: "#3ea8ff",
                   color: "#fff",
                   border: "none",
                   borderRadius: 8,
                   padding: "8px 18px",
-                  cursor: fetching ? "not-allowed" : "pointer",
+                  cursor: "pointer",
                   fontSize: 14,
                   fontWeight: 600,
                 }}
               >
-                {fetching ? "取得中..." : "今すぐ取得"}
+                ログイン / 新規登録
               </button>
             )}
-            <button
-              onClick={handleLogout}
-              style={{
-                background: "transparent",
-                border: "1px solid #475569",
-                color: "#94a3b8",
-                borderRadius: 8,
-                padding: "8px 16px",
-                cursor: "pointer",
-                fontSize: 14,
-              }}
-            >
-              ログアウト
-            </button>
           </div>
         </div>
 
@@ -365,7 +392,13 @@ export default function App() {
           ].map(({ key, label }) => (
             <button
               key={key}
-              onClick={() => setActiveTab(key)}
+              onClick={() => {
+                if (!authUser && (key === "bookmarks" || key === "settings")) {
+                  setShowAuth(true);
+                  return;
+                }
+                setActiveTab(key);
+              }}
               style={{
                 background: activeTab === key ? "#3ea8ff" : "transparent",
                 color: activeTab === key ? "#fff" : "#94a3b8",
