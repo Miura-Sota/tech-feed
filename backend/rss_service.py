@@ -89,22 +89,22 @@ def fetch_articles(source: str, url: str) -> List[Dict[str, Any]]:
     return articles
 
 
+MAX_ARTICLES = 50
+
 def fetch_all_articles(preferred_tags: str = "") -> List[Dict[str, Any]]:
-    """全RSSフィードから記事を取得。preferred_tags が設定されていればタグ別フィードも追加取得"""
+    """全RSSフィードから記事を取得。preferred_tags が設定されていればタグ別フィードを優先取得し、合計50件に制限"""
     all_articles = []
     seen_urls = set()
 
     def add_articles(articles):
         for a in articles:
+            if len(all_articles) >= MAX_ARTICLES:
+                break
             if a["url"] not in seen_urls:
                 seen_urls.add(a["url"])
                 all_articles.append(a)
 
-    # 通常フィード
-    for source, url in RSS_FEEDS.items():
-        add_articles(fetch_articles(source, url))
-
-    # 好みタグのフィードを追加取得
+    # 好みタグのフィードを先に取得（優先）
     if preferred_tags:
         tags = [t.strip() for t in preferred_tags.split(",") if t.strip()]
         for tag in tags:
@@ -113,5 +113,9 @@ def fetch_all_articles(preferred_tags: str = "") -> List[Dict[str, Any]]:
                 continue
             add_articles(fetch_articles("zenn",  f"https://zenn.dev/topics/{slug}/feed"))
             add_articles(fetch_articles("qiita", f"https://qiita.com/tags/{slug}/feed"))
+
+    # 通常フィードで残り枠を補完
+    for source, url in RSS_FEEDS.items():
+        add_articles(fetch_articles(source, url))
 
     return all_articles
