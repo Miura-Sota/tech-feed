@@ -9,9 +9,20 @@ Zenn/QiitaのRSS記事をAIが要約・タグ付け・ピックアップして�
 | フロントエンド | React + Vite |
 | バックエンド | FastAPI |
 | DB | SQLite + SQLAlchemy |
-| AI | Claude claude-haiku-4-5 (Anthropic) |
+| AI | Claude Haiku (Anthropic) |
 | RSS取得 | feedparser |
 | スケジューラー | APScheduler |
+
+---
+
+## 機能
+
+- **今日の記事一覧** — Zenn/Qiitaから取得した当日の記事をAI要約・タグ付きで表示
+- **AIおすすめ3本** — AIが特に有益な記事を3本ピックアップ
+- **検索・タグフィルター** — タイトル・要約・タグでリアルタイム絞り込み
+- **既読マーク** — 読んだ記事を半透明で表示（ローカル保存）
+- **ブックマーク** — 記事をブックマーク保存（ローカル保存）
+- **好みのタグ・キーワード設定** — 設定タブで好みのタグを選択すると、タグ別RSSフィードも追加取得してAIのおすすめ選定に反映。一致する記事カードを青ボーダーでハイライト表示
 
 ---
 
@@ -31,8 +42,6 @@ cd backend
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
-# サーバー起動
 uvicorn main:app --reload
 ```
 
@@ -53,9 +62,10 @@ npm run dev
 ## 使い方
 
 1. ブラウザで http://localhost:5173 を開く
-2. 「今すぐ取得」ボタンでRSSフェッチ + AI処理を手動トリガー
-3. 数秒後に画面が自動更新され、要約・タグ付き記事が表示される
-4. 毎朝7時(JST)に自動実行
+2. 「設定 ⚙」タブで好みのタグを設定（任意）
+3. 「今すぐ取得」ボタンでRSSフェッチ + AI処理を手動トリガー
+4. 数秒後に画面が自動更新され、要約・タグ付き記事が表示される
+5. 毎朝7時(JST)に自動実行
 
 ---
 
@@ -67,6 +77,8 @@ npm run dev
 | GET | /articles/picks | 今日のおすすめ3本 |
 | GET | /articles/ | 全記事（新着順） |
 | POST | /articles/fetch | RSS取得 + AI処理を手動トリガー |
+| GET | /settings/preferences | 好みタグ・キーワード取得 |
+| PUT | /settings/preferences | 好みタグ・キーワード更新 |
 | GET | /health | ヘルスチェック |
 
 ---
@@ -78,20 +90,22 @@ tech-feed/
   backend/
     main.py          - FastAPIアプリ起動
     database.py      - DB接続・セッション
-    models.py        - Article, Feed モデル
+    models.py        - Article, Feed, Preferences モデル
     scheduler.py     - 毎日07:00 JST 自動フェッチ
-    rss_service.py   - RSS取得 (feedparser)
+    rss_service.py   - RSS取得 (feedparser, タグ別フィード対応)
     ai_service.py    - Claude API (要約・タグ・ピックアップ)
     routers/
       articles.py    - 記事APIエンドポイント
+      settings.py    - 設定APIエンドポイント
     requirements.txt
   frontend/
     src/
       App.jsx
       components/
-        TodaysPicks.jsx  - AIおすすめ3本
-        ArticleCard.jsx  - 記事カード
-        ArticleList.jsx  - 記事一覧
+        TodaysPicks.jsx   - AIおすすめ3本
+        ArticleCard.jsx   - 記事カード（好みタグハイライト対応）
+        ArticleList.jsx   - 記事一覧
+        SettingsPanel.jsx - 好みタグ・キーワード設定UI
     package.json
     vite.config.js
   .env.example
