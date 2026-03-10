@@ -1,8 +1,19 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import ArticleCard from "./ArticleCard";
+
+const PAGE_SIZE = 50;
 
 export default function ArticleList({ articles, onTagClick, selectedTag, showAll, readIds, bookmarkedIds, onRead, onBookmark, emptyMessage, preferredTagSet }) {
   const nonPicked = showAll ? articles : articles.filter((a) => !a.is_picked);
+  const [displayLimit, setDisplayLimit] = useState(PAGE_SIZE);
+
+  // 記事が切り替わったら表示上限をリセット
+  useEffect(() => {
+    setDisplayLimit(PAGE_SIZE);
+  }, [articles]);
+
+  const visible = nonPicked.slice(0, displayLimit);
+  const hasMore = nonPicked.length > displayLimit;
 
   if (nonPicked.length === 0) {
     return (
@@ -27,7 +38,7 @@ export default function ArticleList({ articles, onTagClick, selectedTag, showAll
         </h2>
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {nonPicked.map((article) => {
+        {visible.map((article) => {
           const isPreferred = preferredTagSet?.size > 0 &&
             article.tags?.split(",").map((t) => t.trim()).some((t) => preferredTagSet.has(t));
           return (
@@ -45,6 +56,25 @@ export default function ArticleList({ articles, onTagClick, selectedTag, showAll
           );
         })}
       </div>
+      {hasMore && (
+        <button
+          onClick={() => setDisplayLimit((prev) => prev + PAGE_SIZE)}
+          style={{
+            display: "block",
+            margin: "24px auto 0",
+            background: "#f1f5f9",
+            border: "1px solid #cbd5e1",
+            borderRadius: 8,
+            padding: "10px 32px",
+            fontSize: 14,
+            color: "#475569",
+            cursor: "pointer",
+            fontWeight: 600,
+          }}
+        >
+          もっと見る（残り {nonPicked.length - displayLimit} 件）
+        </button>
+      )}
     </section>
   );
 }
