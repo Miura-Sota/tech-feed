@@ -92,7 +92,7 @@ def fetch_articles(source: str, url: str) -> List[Dict[str, Any]]:
 
 MAX_ARTICLES = 50
 
-def fetch_all_articles(preferred_tags: str = "") -> List[Dict[str, Any]]:
+def fetch_all_articles(preferred_tags: str = "", custom_feeds: list = None) -> List[Dict[str, Any]]:
     """全RSSフィードから記事を並列取得。preferred_tags を優先しつつ合計50件に制限"""
     # 優先順でフィードリストを構築（インデックスで順序を保持）
     feeds_to_fetch: List[tuple[str, str]] = []
@@ -108,6 +108,10 @@ def fetch_all_articles(preferred_tags: str = "") -> List[Dict[str, Any]]:
 
     for source, url in RSS_FEEDS.items():
         feeds_to_fetch.append((source, url))
+
+    if custom_feeds:
+        for feed in custom_feeds:
+            feeds_to_fetch.append((feed["name"], feed["url"]))
 
     # 全フィードを並列取得（順序はインデックスで保持）
     results: List[List[Dict[str, Any]]] = [[] for _ in feeds_to_fetch]

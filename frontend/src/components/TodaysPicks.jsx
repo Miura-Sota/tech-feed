@@ -1,7 +1,7 @@
 import React from "react";
 import ArticleCard from "./ArticleCard";
 
-export default function TodaysPicks({ articles, onTagClick, selectedTag, readIds, bookmarkedIds, onRead, onBookmark, preferredTagSet }) {
+export default function TodaysPicks({ articles, onTagClick, selectedTag, readIds, bookmarkedIds, onRead, onBookmark, preferredTagSet, preferredKeywordSet }) {
   const picks = articles.filter((a) => a.is_picked);
 
   if (picks.length === 0) return null;
@@ -29,8 +29,13 @@ export default function TodaysPicks({ articles, onTagClick, selectedTag, readIds
         }}
       >
         {picks.map((article) => {
-          const isPreferred = preferredTagSet?.size > 0 &&
+          const isTagMatched = preferredTagSet?.size > 0 &&
             article.tags?.split(",").map((t) => t.trim()).some((t) => preferredTagSet.has(t));
+          const isKeywordMatched = preferredKeywordSet?.size > 0 && (() => {
+            const text = `${article.title ?? ""} ${article.summary ?? ""} ${article.tags ?? ""}`.toLowerCase();
+            return [...preferredKeywordSet].some((kw) => text.includes(kw));
+          })();
+          const isPreferred = isTagMatched || isKeywordMatched;
           return (
             <ArticleCard
               key={article.id}

@@ -8,7 +8,7 @@ from typing import List
 from pydantic import BaseModel
 
 from database import get_db, SessionLocal
-from models import Article, Preferences
+from models import Article, Preferences, Feed
 import rss_service
 import ai_service
 
@@ -88,7 +88,12 @@ def _fetch_and_process():
     try:
         prefs = db.query(Preferences).filter_by(id=1).first()
         preferred_tags = prefs.preferred_tags if prefs else ""
-        raw_articles = rss_service.fetch_all_articles(preferred_tags=preferred_tags)
+        preferred_keywords = prefs.preferred_keywords if prefs else ""
+        custom_feeds = [
+            {"name": f.name, "url": f.url}
+            for f in db.query(Feed).filter_by(is_active=True).all()
+        ]
+        raw_articles = rss_service.fetch_all_articles(preferred_tags=preferred_tags, custom_feeds=custom_feeds)
         saved = []
 
         # 既存URLを一括チェックしてバッチ挿入
@@ -148,7 +153,7 @@ def _fetch_and_process():
                 {"title": a.title, "source": a.source, "summary": a.summary, "tags": a.tags}
                 for a in today_articles
             ]
-            pick_indices = ai_service.pick_top_articles(articles_dicts, preferred_tags=preferred_tags)
+            pick_indices = ai_service.pick_top_articles(articles_dicts, preferred_tags=preferred_tags, preferred_keywords=preferred_keywords)
             for i, article in enumerate(today_articles):
                 article.is_picked = i in pick_indices
             db.commit()

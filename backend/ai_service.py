@@ -59,7 +59,7 @@ def summarize_article(title: str, snippet: str) -> Dict[str, Any]:
         return {"summary": "", "tags": ""}
 
 
-def pick_top_articles(articles: List[Dict[str, Any]], preferred_tags: str = "") -> List[int]:
+def pick_top_articles(articles: List[Dict[str, Any]], preferred_tags: str = "", preferred_keywords: str = "") -> List[int]:
     """記事リストからおすすめ3本のインデックスを返す"""
     if not articles:
         return []
@@ -70,11 +70,13 @@ def pick_top_articles(articles: List[Dict[str, Any]], preferred_tags: str = "") 
     )
 
     preferred_section = ""
-    if preferred_tags:
-        preferred_section = (
-            f"\n【重要】ユーザーの好みトピック: {preferred_tags}\n"
-            f"上記トピックに関連する記事が存在する場合、必ず1本以上選定に含めてください。\n"
-        )
+    if preferred_tags or preferred_keywords:
+        preferred_section = "\n"
+        if preferred_tags:
+            preferred_section += f"【重要】ユーザーの好みトピック: {preferred_tags}\n"
+        if preferred_keywords:
+            preferred_section += f"【重要】ユーザーの好みキーワード: {preferred_keywords}\n"
+        preferred_section += "上記トピック/キーワードに関連する記事が存在する場合、必ず1本以上選定に含めてください。\n"
 
     prompt = f"""以下は今日収集した技術記事の一覧です。
 
@@ -86,7 +88,7 @@ JSON形式で回答してください（他のテキストは不要）:
 {{"picks": [番号1, 番号2, 番号3]}}
 
 選定基準（優先順）:
-- 好みトピック（{preferred_tags or "指定なし"}）に関連する記事を優先
+- 好みトピック（{preferred_tags or "指定なし"}）/ キーワード（{preferred_keywords or "指定なし"}）に関連する記事を優先
 - 実用的・すぐに使える技術情報
 - トレンドの技術トピック
 - セキュリティや重要なアップデート情報"""

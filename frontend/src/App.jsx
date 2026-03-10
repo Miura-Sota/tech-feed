@@ -6,7 +6,6 @@ import SettingsPanel from "./components/SettingsPanel";
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
 const LS_READ = "tech-feed:read";
-const LS_BOOKMARKS = "tech-feed:bookmarks";
 
 export default function App() {
   const [articles, setArticles] = useState([]);
@@ -23,11 +22,7 @@ export default function App() {
       return new Set(stored);
     } catch { return new Set(); }
   });
-  const [bookmarkedArticles, setBookmarkedArticles] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(LS_BOOKMARKS) ?? "[]");
-    } catch { return []; }
-  });
+  const [bookmarkedArticles, setBookmarkedArticles] = useState([]);
   const [preferences, setPreferences] = useState({ preferred_tags: "", preferred_keywords: "" });
 
   const loadTodayArticles = useCallback(async () => {
@@ -59,6 +54,13 @@ export default function App() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    fetch(`${API_BASE}/bookmarks/`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => setBookmarkedArticles(data))
+      .catch(() => {});
+  }, []);
+
   const handleSavePreferences = useCallback(async (prefs) => {
     const res = await fetch(`${API_BASE}/settings/preferences`, {
       method: "PUT",
@@ -74,6 +76,11 @@ export default function App() {
     if (!preferences.preferred_tags) return new Set();
     return new Set(preferences.preferred_tags.split(",").map((t) => t.trim()).filter(Boolean));
   }, [preferences.preferred_tags]);
+
+  const preferredKeywordSet = useMemo(() => {
+    if (!preferences.preferred_keywords) return new Set();
+    return new Set(preferences.preferred_keywords.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean));
+  }, [preferences.preferred_keywords]);
 
   const handleFetch = async () => {
     setFetching(true);
@@ -111,14 +118,16 @@ export default function App() {
     });
   }, []);
 
-  const handleBookmark = useCallback((article) => {
-    setBookmarkedArticles((prev) => {
-      const exists = prev.some((a) => a.id === article.id);
-      const next = exists ? prev.filter((a) => a.id !== article.id) : [...prev, article];
-      localStorage.setItem(LS_BOOKMARKS, JSON.stringify(next));
-      return next;
-    });
-  }, []);
+  const handleBookmark = useCallback(async (article) => {
+    const isCurrentlyBookmarked = bookmarkedIds.has(article.id);
+    if (isCurrentlyBookmarked) {
+      await fetch(`${API_BASE}/bookmarks/${article.id}`, { method: "DELETE" }).catch(() => {});
+      setBookmarkedArticles((prev) => prev.filter((a) => a.id !== article.id));
+    } else {
+      await fetch(`${API_BASE}/bookmarks/${article.id}`, { method: "POST" }).catch(() => {});
+      setBookmarkedArticles((prev) => [...prev, article]);
+    }
+  }, [bookmarkedIds]);
 
   const bookmarkedIds = useMemo(() => new Set(bookmarkedArticles.map((a) => a.id)), [bookmarkedArticles]);
 
@@ -318,6 +327,7 @@ export default function App() {
               onBookmark={handleBookmark}
               emptyMessage="ブックマークがありません。記事の☆ボタンで追加できます。"
               preferredTagSet={preferredTagSet}
+              preferredKeywordSet={preferredKeywordSet}
             />
           </>
         ) : (
@@ -383,6 +393,7 @@ export default function App() {
                 onRead={handleRead}
                 onBookmark={handleBookmark}
                 preferredTagSet={preferredTagSet}
+                preferredKeywordSet={preferredKeywordSet}
               />
             ) : (
               <>
@@ -395,6 +406,7 @@ export default function App() {
                   onRead={handleRead}
                   onBookmark={handleBookmark}
                   preferredTagSet={preferredTagSet}
+                  preferredKeywordSet={preferredKeywordSet}
                 />
                 <ArticleList
                   articles={articles}
@@ -405,6 +417,7 @@ export default function App() {
                   onRead={handleRead}
                   onBookmark={handleBookmark}
                   preferredTagSet={preferredTagSet}
+                  preferredKeywordSet={preferredKeywordSet}
                 />
               </>
             )}

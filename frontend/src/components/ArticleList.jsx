@@ -3,7 +3,7 @@ import ArticleCard from "./ArticleCard";
 
 const PAGE_SIZE = 50;
 
-export default function ArticleList({ articles, onTagClick, selectedTag, showAll, readIds, bookmarkedIds, onRead, onBookmark, emptyMessage, preferredTagSet }) {
+export default function ArticleList({ articles, onTagClick, selectedTag, showAll, readIds, bookmarkedIds, onRead, onBookmark, emptyMessage, preferredTagSet, preferredKeywordSet }) {
   const nonPicked = showAll ? articles : articles.filter((a) => !a.is_picked);
   const [displayLimit, setDisplayLimit] = useState(PAGE_SIZE);
 
@@ -39,8 +39,13 @@ export default function ArticleList({ articles, onTagClick, selectedTag, showAll
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {visible.map((article) => {
-          const isPreferred = preferredTagSet?.size > 0 &&
+          const isTagMatched = preferredTagSet?.size > 0 &&
             article.tags?.split(",").map((t) => t.trim()).some((t) => preferredTagSet.has(t));
+          const isKeywordMatched = preferredKeywordSet?.size > 0 && (() => {
+            const text = `${article.title ?? ""} ${article.summary ?? ""} ${article.tags ?? ""}`.toLowerCase();
+            return [...preferredKeywordSet].some((kw) => text.includes(kw));
+          })();
+          const isPreferred = isTagMatched || isKeywordMatched;
           return (
             <ArticleCard
               key={article.id}
