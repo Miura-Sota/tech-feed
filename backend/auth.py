@@ -18,11 +18,12 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return pwd_context.verify(plain.encode("utf-8")[:72], hashed)
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    # bcrypt の上限は 72 バイト。超える場合は切り詰める
+    return pwd_context.hash(password.encode("utf-8")[:72])
 
 
 def create_access_token(user_id: int, email: str) -> str:
