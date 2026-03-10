@@ -2,15 +2,16 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from sqlalchemy import cast, Date, func
+from sqlalchemy import func
 from datetime import date, datetime, timezone
 from typing import List
 from pydantic import BaseModel
 
 from database import get_db, SessionLocal
-from models import Article, Preferences, Feed
+from models import Article, Feed, User
 import rss_service
 import ai_service
+from auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -75,8 +76,13 @@ def get_picks(db: Session = Depends(get_db)):
 
 
 @router.post("/fetch")
-def trigger_fetch(background_tasks: BackgroundTasks):
-    """手動でRSSフェッチ + AI処理をトリガー"""
+def trigger_fetch(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+):
+    """手動でRSSフェッチ + AI処理をトリガー（管理者のみ）"""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
     background_tasks.add_task(_fetch_and_process)
     return {"message": "Fetch started in background"}
 
@@ -86,15 +92,14 @@ def _fetch_and_process():
     from sqlalchemy import func as sqlfunc
     db = SessionLocal()
     try:
-        prefs = db.query(Preferences).filter_by(id=1).first()
-        preferred_tags = prefs.preferred_tags if prefs else ""
-        preferred_keywords = prefs.preferred_keywords if prefs else ""
+        preferred_tags = ""
+        preferred_keywords = ""
+        # 全アクティブフィードを対象（ユーザー個別フィルターなし）
         custom_feeds = [
             {"name": f.name, "url": f.url}
             for f in db.query(Feed).filter_by(is_active=True).all()
         ]
         raw_articles = rss_service.fetch_all_articles(preferred_tags=preferred_tags, custom_feeds=custom_feeds)
-        saved = []
 
         # 既存URLを一括チェックしてバッチ挿入
         urls = [a["url"] for a in raw_articles]
@@ -116,7 +121,6 @@ def _fetch_and_process():
             .all()
         )
 
-        # 並列でAI要約（DBアクセスなし、結果だけ収集）
         def _summarize(article_id: int, title: str, snippet: str):
             result = ai_service.summarize_article(title=title, snippet=snippet)
             return article_id, result["summary"], result["tags"]
@@ -134,7 +138,6 @@ def _fetch_and_process():
                 except Exception as e:
                     logger.error(f"Summarization failed: {e}")
 
-        # バッチ更新（1回のコミット）
         if summary_results:
             for article_id, summary, tags in summary_results:
                 db.query(Article).filter(Article.id == article_id).update(
@@ -153,7 +156,11 @@ def _fetch_and_process():
                 {"title": a.title, "source": a.source, "summary": a.summary, "tags": a.tags}
                 for a in today_articles
             ]
-            pick_indices = ai_service.pick_top_articles(articles_dicts, preferred_tags=preferred_tags, preferred_keywords=preferred_keywords)
+            pick_indices = ai_service.pick_top_articles(
+                articles_dicts,
+                preferred_tags=preferred_tags,
+                preferred_keywords=preferred_keywords,
+            )
             for i, article in enumerate(today_articles):
                 article.is_picked = i in pick_indices
             db.commit()

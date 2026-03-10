@@ -1,0 +1,24 @@
+name: Daily Fetch
+
+on:
+  schedule:
+    - cron: "0 22 * * *"  # 22:00 UTC = 07:00 JST
+  workflow_dispatch:  # 手動実行も可能
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login and fetch
+        run: |
+          TOKEN=$(curl -sf -X POST "${{ secrets.API_URL }}/auth/login" \
+            -H "Content-Type: application/json" \
+            -d '{"email":"${{ secrets.ADMIN_EMAIL }}","password":"${{ secrets.ADMIN_PASSWORD }}"}' \
+            | jq -r .access_token)
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "ERROR: Failed to obtain token"
+            exit 1
+          fi
+          curl -sf -X POST "${{ secrets.API_URL }}/articles/fetch" \
+            -H "Authorization: Bearer $TOKEN"
+          echo "Fetch triggered successfully"

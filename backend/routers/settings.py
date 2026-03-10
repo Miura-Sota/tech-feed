@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 from datetime import datetime
 
 from database import get_db
-from models import Preferences, Feed
+from models import Preferences, Feed, User
+from auth import get_current_user
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -24,10 +25,10 @@ class PreferencesIn(BaseModel):
     preferred_keywords: str = ""
 
 
-def _get_or_create(db: Session) -> Preferences:
-    prefs = db.query(Preferences).filter_by(id=1).first()
+def _get_or_create(db: Session, user_id: int) -> Preferences:
+    prefs = db.query(Preferences).filter_by(user_id=user_id).first()
     if prefs is None:
-        prefs = Preferences(id=1, preferred_tags="", preferred_keywords="")
+        prefs = Preferences(user_id=user_id, preferred_tags="", preferred_keywords="")
         db.add(prefs)
         db.commit()
         db.refresh(prefs)
@@ -35,13 +36,20 @@ def _get_or_create(db: Session) -> Preferences:
 
 
 @router.get("/preferences", response_model=PreferencesOut)
-def get_preferences(db: Session = Depends(get_db)):
-    return _get_or_create(db)
+def get_preferences(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return _get_or_create(db, current_user.id)
 
 
 @router.put("/preferences", response_model=PreferencesOut)
-def update_preferences(body: PreferencesIn, db: Session = Depends(get_db)):
-    prefs = _get_or_create(db)
+def update_preferences(
+    body: PreferencesIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    prefs = _get_or_create(db, current_user.id)
     prefs.preferred_tags = body.preferred_tags
     prefs.preferred_keywords = body.preferred_keywords
     db.commit()
@@ -66,15 +74,27 @@ class FeedIn(BaseModel):
 
 
 @router.get("/feeds", response_model=List[FeedOut])
-def get_feeds(db: Session = Depends(get_db)):
+def get_feeds(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """カスタムフィード一覧を返す"""
-    return db.query(Feed).order_by(Feed.created_at.asc()).all()
+    return (
+        db.query(Feed)
+        .filter(Feed.user_id == current_user.id)
+        .order_by(Feed.created_at.asc())
+        .all()
+    )
 
 
 @router.post("/feeds", response_model=FeedOut, status_code=201)
-def add_feed(body: FeedIn, db: Session = Depends(get_db)):
+def add_feed(
+    body: FeedIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """カスタムフィード追加"""
-    feed = Feed(name=body.name, url=body.url)
+    feed = Feed(user_id=current_user.id, name=body.name, url=body.url)
     db.add(feed)
     db.commit()
     db.refresh(feed)
@@ -82,9 +102,13 @@ def add_feed(body: FeedIn, db: Session = Depends(get_db)):
 
 
 @router.delete("/feeds/{feed_id}")
-def delete_feed(feed_id: int, db: Session = Depends(get_db)):
+def delete_feed(
+    feed_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """カスタムフィード削除"""
-    feed = db.query(Feed).filter(Feed.id == feed_id).first()
+    feed = db.query(Feed).filter(Feed.id == feed_id, Feed.user_id == current_user.id).first()
     if not feed:
         raise HTTPException(status_code=404, detail="Feed not found")
     db.delete(feed)
@@ -93,9 +117,13 @@ def delete_feed(feed_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/feeds/{feed_id}", response_model=FeedOut)
-def toggle_feed(feed_id: int, db: Session = Depends(get_db)):
+def toggle_feed(
+    feed_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """フィードの有効/無効をトグル"""
-    feed = db.query(Feed).filter(Feed.id == feed_id).first()
+    feed = db.query(Feed).filter(Feed.id == feed_id, Feed.user_id == current_user.id).first()
     if not feed:
         raise HTTPException(status_code=404, detail="Feed not found")
     feed.is_active = not feed.is_active

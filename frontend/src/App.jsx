@@ -2,12 +2,22 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import TodaysPicks from "./components/TodaysPicks";
 import ArticleList from "./components/ArticleList";
 import SettingsPanel from "./components/SettingsPanel";
-
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+import AuthPage from "./components/AuthPage";
+import { apiFetch, logout, getToken } from "./api";
 
 const LS_READ = "tech-feed:read";
+const LS_USER = "tech-feed:user";
+
+function loadStoredUser() {
+  try {
+    const raw = localStorage.getItem(LS_USER);
+    if (raw && getToken()) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
 
 export default function App() {
+  const [authUser, setAuthUser] = useState(() => loadStoredUser());
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
@@ -28,6 +38,33 @@ export default function App() {
     localStorage.getItem("tech-feed:tagFilterMode") ?? "or"
   );
 
+  const handleAuth = useCallback((userData) => {
+    setAuthUser(userData);
+    localStorage.setItem(LS_USER, JSON.stringify(userData));
+    // reset state for new user
+    setArticles([]);
+    setReadIds(new Set());
+    setBookmarkedArticles([]);
+    setPreferences({ preferred_tags: "", preferred_keywords: "" });
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    logout();
+    localStorage.removeItem(LS_USER);
+    localStorage.removeItem(LS_READ);
+    setAuthUser(null);
+    setArticles([]);
+    setReadIds(new Set());
+    setBookmarkedArticles([]);
+  }, []);
+
+  // 401 イベントで自動ログアウト
+  useEffect(() => {
+    const onAuthLogout = () => handleLogout();
+    window.addEventListener("auth:logout", onAuthLogout);
+    return () => window.removeEventListener("auth:logout", onAuthLogout);
+  }, [handleLogout]);
+
   const handleTagFilterModeChange = useCallback((mode) => {
     setTagFilterMode(mode);
     localStorage.setItem("tech-feed:tagFilterMode", mode);
@@ -37,7 +74,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/articles/today`);
+      const res = await apiFetch("/articles/today");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setArticles(data);
@@ -52,18 +89,21 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!authUser) return;
     loadTodayArticles();
-  }, [loadTodayArticles]);
+  }, [authUser, loadTodayArticles]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/settings/preferences`)
+    if (!authUser) return;
+    apiFetch("/settings/preferences")
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data) setPreferences(data); })
       .catch(() => {});
-  }, []);
+  }, [authUser]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/read-marks/`)
+    if (!authUser) return;
+    apiFetch("/read-marks/")
       .then((r) => r.ok ? r.json() : [])
       .then((data) => {
         const ids = new Set(data.map((r) => r.article_id));
@@ -71,17 +111,18 @@ export default function App() {
         localStorage.setItem(LS_READ, JSON.stringify([...ids]));
       })
       .catch(() => {});
-  }, []);
+  }, [authUser]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/bookmarks/`)
+    if (!authUser) return;
+    apiFetch("/bookmarks/")
       .then((r) => r.ok ? r.json() : [])
       .then((data) => setBookmarkedArticles(data))
       .catch(() => {});
-  }, []);
+  }, [authUser]);
 
   const handleSavePreferences = useCallback(async (prefs) => {
-    const res = await fetch(`${API_BASE}/settings/preferences`, {
+    const res = await apiFetch("/settings/preferences", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(prefs),
@@ -104,7 +145,7 @@ export default function App() {
   const handleFetch = async () => {
     setFetching(true);
     try {
-      const res = await fetch(`${API_BASE}/articles/fetch`, { method: "POST" });
+      const res = await apiFetch("/articles/fetch", { method: "POST" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const startTime = Date.now();
       const poll = async () => {
@@ -132,7 +173,7 @@ export default function App() {
       if (prev.has(id)) return prev;
       const next = new Set(prev);
       next.add(id);
-      fetch(`${API_BASE}/read-marks/${id}`, { method: "POST" }).catch(() => {});
+      apiFetch(`/read-marks/${id}`, { method: "POST" }).catch(() => {});
       localStorage.setItem(LS_READ, JSON.stringify([...next]));
       return next;
     });
@@ -142,10 +183,10 @@ export default function App() {
     setBookmarkedArticles((prev) => {
       const isCurrentlyBookmarked = prev.some((a) => a.id === article.id);
       if (isCurrentlyBookmarked) {
-        fetch(`${API_BASE}/bookmarks/${article.id}`, { method: "DELETE" }).catch(() => {});
+        apiFetch(`/bookmarks/${article.id}`, { method: "DELETE" }).catch(() => {});
         return prev.filter((a) => a.id !== article.id);
       } else {
-        fetch(`${API_BASE}/bookmarks/${article.id}`, { method: "POST" }).catch(() => {});
+        apiFetch(`/bookmarks/${article.id}`, { method: "POST" }).catch(() => {});
         return [...prev, article];
       }
     });
@@ -201,6 +242,11 @@ export default function App() {
     weekday: "short",
   });
 
+  // 未認証時は AuthPage を表示
+  if (!authUser) {
+    return <AuthPage onAuth={handleAuth} />;
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
       {/* ヘッダー */}
@@ -233,6 +279,7 @@ export default function App() {
             </p>
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "#64748b" }}>{authUser.email}</span>
             {lastUpdated && (
               <span style={{ fontSize: 12, color: "#64748b" }}>
                 更新: {lastUpdated.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
@@ -253,21 +300,37 @@ export default function App() {
             >
               {loading ? "読込中..." : "更新"}
             </button>
+            {authUser.is_admin && (
+              <button
+                onClick={handleFetch}
+                disabled={fetching}
+                style={{
+                  background: fetching ? "#475569" : "#3ea8ff",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "8px 18px",
+                  cursor: fetching ? "not-allowed" : "pointer",
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
+              >
+                {fetching ? "取得中..." : "今すぐ取得"}
+              </button>
+            )}
             <button
-              onClick={handleFetch}
-              disabled={fetching}
+              onClick={handleLogout}
               style={{
-                background: fetching ? "#475569" : "#3ea8ff",
-                color: "#fff",
-                border: "none",
+                background: "transparent",
+                border: "1px solid #475569",
+                color: "#94a3b8",
                 borderRadius: 8,
-                padding: "8px 18px",
-                cursor: fetching ? "not-allowed" : "pointer",
+                padding: "8px 16px",
+                cursor: "pointer",
                 fontSize: 14,
-                fontWeight: 600,
               }}
             >
-              {fetching ? "取得中..." : "今すぐ取得"}
+              ログアウト
             </button>
           </div>
         </div>
@@ -370,7 +433,6 @@ export default function App() {
           </>
         ) : (
           <>
-            {/* 統計バー / フィルター表示 */}
             {articles.length > 0 && (
               <div
                 style={{

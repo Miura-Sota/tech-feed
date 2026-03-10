@@ -8,8 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from database import engine
 from models import Base
-from routers import articles, settings, bookmarks, read_marks
-from scheduler import start_scheduler
+from routers import articles, settings, bookmarks, read_marks, auth
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,20 +19,15 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 起動時: テーブル作成 + スケジューラー開始
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created")
-    scheduler = start_scheduler()
     yield
-    # 終了時: スケジューラー停止
-    scheduler.shutdown()
-    logger.info("Scheduler stopped")
 
 
 app = FastAPI(
     title="Tech Feed API",
     description="AI-powered tech news feed from Zenn and Qiita",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -49,6 +43,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(articles.router)
 app.include_router(settings.router)
 app.include_router(bookmarks.router)

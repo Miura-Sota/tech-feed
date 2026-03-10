@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { apiFetch } from "../api";
 
 const ALL_TAGS = [
   "React", "Vue", "TypeScript", "Python", "Go", "Rust",
@@ -6,8 +7,6 @@ const ALL_TAGS = [
   "データベース", "API", "フロントエンド", "バックエンド", "DevOps",
   "パフォーマンス", "テスト", "設計",
 ];
-
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
 export default function SettingsPanel({ preferences, onSave, tagFilterMode, onTagFilterModeChange }) {
   const [selectedTags, setSelectedTags] = useState(new Set());
@@ -32,7 +31,7 @@ export default function SettingsPanel({ preferences, onSave, tagFilterMode, onTa
   }, [preferences]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/settings/feeds`)
+    apiFetch("/settings/feeds")
       .then((r) => r.ok ? r.json() : [])
       .then((data) => setFeeds(data))
       .catch(() => {});
@@ -41,7 +40,7 @@ export default function SettingsPanel({ preferences, onSave, tagFilterMode, onTa
   const handleAddFeed = async () => {
     if (!newFeedName.trim() || !newFeedUrl.trim()) return;
     try {
-      const res = await fetch(`${API_BASE}/settings/feeds`, {
+      const res = await apiFetch("/settings/feeds", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newFeedName.trim(), url: newFeedUrl.trim() }),
@@ -60,12 +59,12 @@ export default function SettingsPanel({ preferences, onSave, tagFilterMode, onTa
   };
 
   const handleDeleteFeed = async (id) => {
-    await fetch(`${API_BASE}/settings/feeds/${id}`, { method: "DELETE" }).catch(() => {});
+    await apiFetch(`/settings/feeds/${id}`, { method: "DELETE" }).catch(() => {});
     setFeeds((prev) => prev.filter((f) => f.id !== id));
   };
 
   const handleToggleFeed = async (id) => {
-    const res = await fetch(`${API_BASE}/settings/feeds/${id}`, { method: "PATCH" }).catch(() => null);
+    const res = await apiFetch(`/settings/feeds/${id}`, { method: "PATCH" }).catch(() => null);
     if (res && res.ok) {
       const updated = await res.json();
       setFeeds((prev) => prev.map((f) => f.id === id ? updated : f));
