@@ -118,16 +118,18 @@ export default function App() {
     });
   }, []);
 
-  const handleBookmark = useCallback(async (article) => {
-    const isCurrentlyBookmarked = bookmarkedIds.has(article.id);
-    if (isCurrentlyBookmarked) {
-      await fetch(`${API_BASE}/bookmarks/${article.id}`, { method: "DELETE" }).catch(() => {});
-      setBookmarkedArticles((prev) => prev.filter((a) => a.id !== article.id));
-    } else {
-      await fetch(`${API_BASE}/bookmarks/${article.id}`, { method: "POST" }).catch(() => {});
-      setBookmarkedArticles((prev) => [...prev, article]);
-    }
-  }, [bookmarkedIds]);
+  const handleBookmark = useCallback((article) => {
+    setBookmarkedArticles((prev) => {
+      const isCurrentlyBookmarked = prev.some((a) => a.id === article.id);
+      if (isCurrentlyBookmarked) {
+        fetch(`${API_BASE}/bookmarks/${article.id}`, { method: "DELETE" }).catch(() => {});
+        return prev.filter((a) => a.id !== article.id);
+      } else {
+        fetch(`${API_BASE}/bookmarks/${article.id}`, { method: "POST" }).catch(() => {});
+        return [...prev, article];
+      }
+    });
+  }, []);
 
   const bookmarkedIds = useMemo(() => new Set(bookmarkedArticles.map((a) => a.id)), [bookmarkedArticles]);
 
