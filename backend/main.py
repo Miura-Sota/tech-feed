@@ -75,4 +75,5 @@ def root():
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    import sys
+    return {"status": "ok", "py": sys.version, "build": "debug-v3"}
