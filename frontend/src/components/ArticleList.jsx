@@ -1,7 +1,7 @@
 import React from "react";
 import ArticleCard from "./ArticleCard";
 
-export default function ArticleList({ articles, onTagClick, selectedTag, showAll, readIds, bookmarkedIds, onRead, onBookmark, emptyMessage }) {
+export default function ArticleList({ articles, onTagClick, selectedTag, showAll, readIds, bookmarkedIds, onRead, onBookmark, emptyMessage, preferredTagSet }) {
   const nonPicked = showAll ? articles : articles.filter((a) => !a.is_picked);
 
   if (nonPicked.length === 0) {
@@ -27,18 +27,23 @@ export default function ArticleList({ articles, onTagClick, selectedTag, showAll
         </h2>
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {nonPicked.map((article) => (
-          <ArticleCard
-            key={article.id}
-            article={article}
-            onTagClick={onTagClick}
-            selectedTag={selectedTag}
-            isRead={readIds?.has(article.id)}
-            isBookmarked={bookmarkedIds?.has(article.id)}
-            onRead={onRead}
-            onBookmark={onBookmark}
-          />
-        ))}
+        {nonPicked.map((article) => {
+          const isPreferred = preferredTagSet?.size > 0 &&
+            article.tags?.split(",").map((t) => t.trim()).some((t) => preferredTagSet.has(t));
+          return (
+            <ArticleCard
+              key={article.id}
+              article={article}
+              onTagClick={onTagClick}
+              selectedTag={selectedTag}
+              isRead={readIds?.has(article.id)}
+              isBookmarked={bookmarkedIds?.has(article.id)}
+              onRead={onRead}
+              onBookmark={onBookmark}
+              isPreferred={isPreferred}
+            />
+          );
+        })}
       </div>
     </section>
   );

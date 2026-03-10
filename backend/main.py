@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from database import engine
 from models import Base
-from routers import articles
+from routers import articles, settings
 from scheduler import start_scheduler
 
 logging.basicConfig(
@@ -50,6 +50,7 @@ app.add_middleware(
 )
 
 app.include_router(articles.router)
+app.include_router(settings.router)
 
 
 @app.get("/")

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import TodaysPicks from "./components/TodaysPicks";
 import ArticleList from "./components/ArticleList";
+import SettingsPanel from "./components/SettingsPanel";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -27,6 +28,7 @@ export default function App() {
       return JSON.parse(localStorage.getItem(LS_BOOKMARKS) ?? "[]");
     } catch { return []; }
   });
+  const [preferences, setPreferences] = useState({ preferred_tags: "", preferred_keywords: "" });
 
   const loadTodayArticles = useCallback(async () => {
     setLoading(true);
@@ -47,6 +49,29 @@ export default function App() {
   useEffect(() => {
     loadTodayArticles();
   }, [loadTodayArticles]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/settings/preferences`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setPreferences(data); })
+      .catch(() => {});
+  }, []);
+
+  const handleSavePreferences = useCallback(async (prefs) => {
+    const res = await fetch(`${API_BASE}/settings/preferences`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(prefs),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    setPreferences(data);
+  }, []);
+
+  const preferredTagSet = useMemo(() => {
+    if (!preferences.preferred_tags) return new Set();
+    return new Set(preferences.preferred_tags.split(",").map((t) => t.trim()).filter(Boolean));
+  }, [preferences.preferred_tags]);
 
   const handleFetch = async () => {
     setFetching(true);
@@ -218,6 +243,7 @@ export default function App() {
           {[
             { key: "today", label: "今日" },
             { key: "bookmarks", label: `ブックマーク ${bookmarkedArticles.length}件` },
+            { key: "settings", label: preferredTagSet.size > 0 ? "設定 ⚙ ✓" : "設定 ⚙" },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -257,7 +283,9 @@ export default function App() {
           </div>
         )}
 
-        {loading && activeTab === "today" ? (
+        {activeTab === "settings" ? (
+          <SettingsPanel preferences={preferences} onSave={handleSavePreferences} />
+        ) : loading && activeTab === "today" ? (
           <div style={{ textAlign: "center", padding: 60, color: "#64748b" }}>
             <p style={{ fontSize: 16 }}>記事を読み込み中...</p>
           </div>
@@ -276,6 +304,7 @@ export default function App() {
               onRead={handleRead}
               onBookmark={handleBookmark}
               emptyMessage="ブックマークがありません。記事の☆ボタンで追加できます。"
+              preferredTagSet={preferredTagSet}
             />
           </>
         ) : (
@@ -340,6 +369,7 @@ export default function App() {
                 bookmarkedIds={bookmarkedIds}
                 onRead={handleRead}
                 onBookmark={handleBookmark}
+                preferredTagSet={preferredTagSet}
               />
             ) : (
               <>
@@ -351,6 +381,7 @@ export default function App() {
                   bookmarkedIds={bookmarkedIds}
                   onRead={handleRead}
                   onBookmark={handleBookmark}
+                  preferredTagSet={preferredTagSet}
                 />
                 <ArticleList
                   articles={articles}
@@ -360,6 +391,7 @@ export default function App() {
                   bookmarkedIds={bookmarkedIds}
                   onRead={handleRead}
                   onBookmark={handleBookmark}
+                  preferredTagSet={preferredTagSet}
                 />
               </>
             )}

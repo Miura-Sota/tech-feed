@@ -3,6 +3,15 @@ from sqlalchemy.sql import func
 from database import Base
 
 
+class Preferences(Base):
+    __tablename__ = "preferences"
+
+    id = Column(Integer, primary_key=True, default=1)
+    preferred_tags = Column(String(500), default="")     # "Python,Rust,AI/ML"
+    preferred_keywords = Column(String(500), default="") # 任意キーワード（カンマ区切り）
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
 class Feed(Base):
     __tablename__ = "feeds"
 

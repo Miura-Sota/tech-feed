@@ -16,7 +16,7 @@ function tagColor(tag) {
   return TAG_COLORS[hash % TAG_COLORS.length];
 }
 
-export default function ArticleCard({ article, onTagClick, selectedTag, isRead, isBookmarked, onRead, onBookmark }) {
+export default function ArticleCard({ article, onTagClick, selectedTag, isRead, isBookmarked, onRead, onBookmark, isPreferred }) {
   const src = SOURCE_COLORS[article.source] ?? { bg: "#f5f5f5", border: "#999", text: "#555" };
   const tags = article.tags ? article.tags.split(",").map((t) => t.trim()).filter(Boolean) : [];
 
@@ -26,7 +26,7 @@ export default function ArticleCard({ article, onTagClick, selectedTag, isRead, 
         background: "#fff",
         borderRadius: 12,
         padding: "18px 20px",
-        borderLeft: `4px solid ${src.border}`,
+        borderLeft: isPreferred ? "4px solid #3ea8ff" : `4px solid ${src.border}`,
         boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
         display: "flex",
         flexDirection: "column",

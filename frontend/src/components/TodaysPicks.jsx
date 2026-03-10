@@ -1,7 +1,7 @@
 import React from "react";
 import ArticleCard from "./ArticleCard";
 
-export default function TodaysPicks({ articles, onTagClick, selectedTag, readIds, bookmarkedIds, onRead, onBookmark }) {
+export default function TodaysPicks({ articles, onTagClick, selectedTag, readIds, bookmarkedIds, onRead, onBookmark, preferredTagSet }) {
   const picks = articles.filter((a) => a.is_picked);
 
   if (picks.length === 0) return null;
@@ -28,18 +28,23 @@ export default function TodaysPicks({ articles, onTagClick, selectedTag, readIds
           gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
         }}
       >
-        {picks.map((article) => (
-          <ArticleCard
-            key={article.id}
-            article={article}
-            onTagClick={onTagClick}
-            selectedTag={selectedTag}
-            isRead={readIds?.has(article.id)}
-            isBookmarked={bookmarkedIds?.has(article.id)}
-            onRead={onRead}
-            onBookmark={onBookmark}
-          />
-        ))}
+        {picks.map((article) => {
+          const isPreferred = preferredTagSet?.size > 0 &&
+            article.tags?.split(",").map((t) => t.trim()).some((t) => preferredTagSet.has(t));
+          return (
+            <ArticleCard
+              key={article.id}
+              article={article}
+              onTagClick={onTagClick}
+              selectedTag={selectedTag}
+              isRead={readIds?.has(article.id)}
+              isBookmarked={bookmarkedIds?.has(article.id)}
+              onRead={onRead}
+              onBookmark={onBookmark}
+              isPreferred={isPreferred}
+            />
+          );
+        })}
       </div>
     </section>
   );

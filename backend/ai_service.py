@@ -59,7 +59,7 @@ def summarize_article(title: str, snippet: str) -> Dict[str, Any]:
         return {"summary": "", "tags": ""}
 
 
-def pick_top_articles(articles: List[Dict[str, Any]]) -> List[int]:
+def pick_top_articles(articles: List[Dict[str, Any]], preferred_tags: str = "") -> List[int]:
     """記事リストからおすすめ3本のインデックスを返す"""
     if not articles:
         return []
@@ -69,10 +69,14 @@ def pick_top_articles(articles: List[Dict[str, Any]]) -> List[int]:
         for i, a in enumerate(articles)
     )
 
+    preferred_section = ""
+    if preferred_tags:
+        preferred_section = f"\nユーザーの好みトピック（特に優先してほしい）: {preferred_tags}\n"
+
     prompt = f"""以下は今日収集した技術記事の一覧です。
 
 {articles_text}
-
+{preferred_section}
 エンジニアにとって特に学びになる・重要性が高い記事を3本選び、その番号を回答してください。
 
 JSON形式で回答してください（他のテキストは不要）:
