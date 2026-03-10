@@ -1,8 +1,6 @@
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from sqlalchemy.orm import Session
-from database import SessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -10,15 +8,12 @@ logger = logging.getLogger(__name__)
 def scheduled_fetch():
     """毎朝7時に実行: RSS取得 + AI処理"""
     logger.info("Scheduled fetch started")
-    db: Session = SessionLocal()
     try:
         from routers.articles import _fetch_and_process
-        result = _fetch_and_process(db)
+        result = _fetch_and_process()
         logger.info(f"Scheduled fetch completed: {result}")
     except Exception as e:
         logger.error(f"Scheduled fetch failed: {e}")
-    finally:
-        db.close()
 
 
 def start_scheduler():

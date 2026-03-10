@@ -39,8 +39,10 @@ export default function App() {
       const data = await res.json();
       setArticles(data);
       setLastUpdated(new Date());
+      return data;
     } catch (e) {
       setError(`記事の取得に失敗しました: ${e.message}`);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -78,10 +80,21 @@ export default function App() {
     try {
       const res = await fetch(`${API_BASE}/articles/fetch`, { method: "POST" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setTimeout(() => {
-        loadTodayArticles();
-        setFetching(false);
-      }, 3000);
+      const startTime = Date.now();
+      const poll = async () => {
+        if (Date.now() - startTime > 120000) {
+          setFetching(false);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 5000));
+        const data = await loadTodayArticles();
+        if (data.some((a) => a.is_picked)) {
+          setFetching(false);
+        } else {
+          poll();
+        }
+      };
+      poll();
     } catch (e) {
       setError(`フェッチのトリガーに失敗しました: ${e.message}`);
       setFetching(false);
