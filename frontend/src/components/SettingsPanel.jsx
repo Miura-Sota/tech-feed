@@ -9,7 +9,7 @@ const ALL_TAGS = [
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
-export default function SettingsPanel({ preferences, onSave }) {
+export default function SettingsPanel({ preferences, onSave, tagFilterMode, onTagFilterModeChange }) {
   const [selectedTags, setSelectedTags] = useState(new Set());
   const [keywords, setKeywords] = useState("");
   const [saveMsg, setSaveMsg] = useState(null);
@@ -157,6 +157,51 @@ export default function SettingsPanel({ preferences, onSave }) {
           })}
         </div>
       </div>
+
+      {/* OR/AND トグル */}
+      {selectedTags.size > 0 && (
+        <div
+          style={{
+            background: "#f0f9ff",
+            border: "1px solid #bae6fd",
+            borderRadius: 10,
+            padding: "14px 20px",
+            marginBottom: 20,
+            display: "flex",
+            alignItems: "center",
+            gap: 20,
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 600, color: "#0369a1" }}>フィルター条件:</span>
+          {[
+            { value: "or", label: "OR（いずれかのタグ）" },
+            { value: "and", label: "AND（すべてのタグ）" },
+          ].map(({ value, label }) => (
+            <label
+              key={value}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 13,
+                color: tagFilterMode === value ? "#0e7490" : "#475569",
+                fontWeight: tagFilterMode === value ? 700 : 400,
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="radio"
+                name="tagFilterMode"
+                value={value}
+                checked={tagFilterMode === value}
+                onChange={() => onTagFilterModeChange(value)}
+                style={{ accentColor: "#3ea8ff" }}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+      )}
 
       {/* キーワード入力 */}
       <div

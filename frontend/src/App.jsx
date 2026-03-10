@@ -24,6 +24,14 @@ export default function App() {
   });
   const [bookmarkedArticles, setBookmarkedArticles] = useState([]);
   const [preferences, setPreferences] = useState({ preferred_tags: "", preferred_keywords: "" });
+  const [tagFilterMode, setTagFilterMode] = useState(() =>
+    localStorage.getItem("tech-feed:tagFilterMode") ?? "or"
+  );
+
+  const handleTagFilterModeChange = useCallback((mode) => {
+    setTagFilterMode(mode);
+    localStorage.setItem("tech-feed:tagFilterMode", mode);
+  }, []);
 
   const loadTodayArticles = useCallback(async () => {
     setLoading(true);
@@ -143,23 +151,34 @@ export default function App() {
     setSelectedTag(null);
   };
 
+  const baseArticles = useMemo(() => {
+    if (preferredTagSet.size === 0) return articles;
+    return articles.filter((a) => {
+      const articleTags = a.tags?.split(",").map((t) => t.trim()) ?? [];
+      if (tagFilterMode === "and") {
+        return [...preferredTagSet].every((t) => articleTags.includes(t));
+      }
+      return articleTags.some((t) => preferredTagSet.has(t));
+    });
+  }, [articles, preferredTagSet, tagFilterMode]);
+
   const filteredArticles = useMemo(() => {
     if (selectedTag) {
-      return articles.filter((a) =>
+      return baseArticles.filter((a) =>
         a.tags?.split(",").map((t) => t.trim()).includes(selectedTag)
       );
     }
     if (searchText.trim()) {
       const q = searchText.trim().toLowerCase();
-      return articles.filter(
+      return baseArticles.filter(
         (a) =>
           a.title?.toLowerCase().includes(q) ||
           a.summary?.toLowerCase().includes(q) ||
           a.tags?.toLowerCase().includes(q)
       );
     }
-    return articles;
-  }, [articles, selectedTag, searchText]);
+    return baseArticles;
+  }, [baseArticles, selectedTag, searchText]);
 
   const isFiltering = selectedTag || searchText.trim();
 
@@ -308,7 +327,12 @@ export default function App() {
         )}
 
         {activeTab === "settings" ? (
-          <SettingsPanel preferences={preferences} onSave={handleSavePreferences} />
+          <SettingsPanel
+            preferences={preferences}
+            onSave={handleSavePreferences}
+            tagFilterMode={tagFilterMode}
+            onTagFilterModeChange={handleTagFilterModeChange}
+          />
         ) : loading && activeTab === "today" ? (
           <div style={{ textAlign: "center", padding: 60, color: "#64748b" }}>
             <p style={{ fontSize: 16 }}>記事を読み込み中...</p>
@@ -379,6 +403,11 @@ export default function App() {
                     <span>Zenn: <strong>{articles.filter((a) => a.source === "zenn").length}</strong></span>
                     <span>Qiita: <strong>{articles.filter((a) => a.source === "qiita").length}</strong></span>
                     <span>おすすめ: <strong>{articles.filter((a) => a.is_picked).length}</strong></span>
+                    {preferredTagSet.size > 0 && (
+                      <span style={{ color: "#0e7490", fontWeight: 600 }}>
+                        好みタグでフィルター中: {baseArticles.length}/{articles.length}件
+                      </span>
+                    )}
                   </>
                 )}
               </div>
@@ -400,7 +429,7 @@ export default function App() {
             ) : (
               <>
                 <TodaysPicks
-                  articles={articles}
+                  articles={baseArticles}
                   onTagClick={handleTagClick}
                   selectedTag={selectedTag}
                   readIds={readIds}
@@ -411,7 +440,7 @@ export default function App() {
                   preferredKeywordSet={preferredKeywordSet}
                 />
                 <ArticleList
-                  articles={articles}
+                  articles={baseArticles}
                   onTagClick={handleTagClick}
                   selectedTag={selectedTag}
                   readIds={readIds}
