@@ -82,7 +82,9 @@ def _fetch_and_process():
     from sqlalchemy import func as sqlfunc
     db = SessionLocal()
     try:
-        raw_articles = rss_service.fetch_all_articles()
+        prefs = db.query(Preferences).filter_by(id=1).first()
+        preferred_tags = prefs.preferred_tags if prefs else ""
+        raw_articles = rss_service.fetch_all_articles(preferred_tags=preferred_tags)
         saved = []
 
         for a in raw_articles:
@@ -122,8 +124,6 @@ def _fetch_and_process():
                 {"title": a.title, "source": a.source, "summary": a.summary, "tags": a.tags}
                 for a in today_articles
             ]
-            prefs = db.query(Preferences).filter_by(id=1).first()
-            preferred_tags = prefs.preferred_tags if prefs else ""
             pick_indices = ai_service.pick_top_articles(articles_dicts, preferred_tags=preferred_tags)
             for i, article in enumerate(today_articles):
                 article.is_picked = i in pick_indices
