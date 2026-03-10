@@ -71,7 +71,10 @@ def pick_top_articles(articles: List[Dict[str, Any]], preferred_tags: str = "") 
 
     preferred_section = ""
     if preferred_tags:
-        preferred_section = f"\nユーザーの好みトピック（特に優先してほしい）: {preferred_tags}\n"
+        preferred_section = (
+            f"\n【重要】ユーザーの好みトピック: {preferred_tags}\n"
+            f"上記トピックに関連する記事が存在する場合、必ず1本以上選定に含めてください。\n"
+        )
 
     prompt = f"""以下は今日収集した技術記事の一覧です。
 
@@ -82,7 +85,8 @@ def pick_top_articles(articles: List[Dict[str, Any]], preferred_tags: str = "") 
 JSON形式で回答してください（他のテキストは不要）:
 {{"picks": [番号1, 番号2, 番号3]}}
 
-選定基準:
+選定基準（優先順）:
+- 好みトピック（{preferred_tags or "指定なし"}）に関連する記事を優先
 - 実用的・すぐに使える技術情報
 - トレンドの技術トピック
 - セキュリティや重要なアップデート情報"""
