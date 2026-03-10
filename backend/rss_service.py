@@ -1,5 +1,6 @@
 import feedparser
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import List, Dict, Any
 from email.utils import parsedate_to_datetime
@@ -92,30 +93,42 @@ def fetch_articles(source: str, url: str) -> List[Dict[str, Any]]:
 MAX_ARTICLES = 50
 
 def fetch_all_articles(preferred_tags: str = "") -> List[Dict[str, Any]]:
-    """全RSSフィードから記事を取得。preferred_tags が設定されていればタグ別フィードを優先取得し、合計50件に制限"""
-    all_articles = []
-    seen_urls = set()
+    """全RSSフィードから記事を並列取得。preferred_tags を優先しつつ合計50件に制限"""
+    # 優先順でフィードリストを構築（インデックスで順序を保持）
+    feeds_to_fetch: List[tuple[str, str]] = []
 
-    def add_articles(articles):
-        for a in articles:
-            if len(all_articles) >= MAX_ARTICLES:
-                break
-            if a["url"] not in seen_urls:
-                seen_urls.add(a["url"])
-                all_articles.append(a)
-
-    # 好みタグのフィードを先に取得（優先）
     if preferred_tags:
         tags = [t.strip() for t in preferred_tags.split(",") if t.strip()]
         for tag in tags:
             slug = TAG_SLUGS.get(tag)
             if not slug:
                 continue
-            add_articles(fetch_articles("zenn",  f"https://zenn.dev/topics/{slug}/feed"))
-            add_articles(fetch_articles("qiita", f"https://qiita.com/tags/{slug}/feed"))
+            feeds_to_fetch.append(("zenn",  f"https://zenn.dev/topics/{slug}/feed"))
+            feeds_to_fetch.append(("qiita", f"https://qiita.com/tags/{slug}/feed"))
 
-    # 通常フィードで残り枠を補完
     for source, url in RSS_FEEDS.items():
-        add_articles(fetch_articles(source, url))
+        feeds_to_fetch.append((source, url))
+
+    # 全フィードを並列取得（順序はインデックスで保持）
+    results: List[List[Dict[str, Any]]] = [[] for _ in feeds_to_fetch]
+    max_workers = min(10, len(feeds_to_fetch)) if feeds_to_fetch else 1
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_idx = {
+            executor.submit(fetch_articles, source, url): i
+            for i, (source, url) in enumerate(feeds_to_fetch)
+        }
+        for future in as_completed(future_to_idx):
+            results[future_to_idx[future]] = future.result()
+
+    # 優先順で重複除去しながらマージ
+    all_articles: List[Dict[str, Any]] = []
+    seen_urls: set[str] = set()
+    for articles in results:
+        for a in articles:
+            if len(all_articles) >= MAX_ARTICLES:
+                return all_articles
+            if a["url"] not in seen_urls:
+                seen_urls.add(a["url"])
+                all_articles.append(a)
 
     return all_articles

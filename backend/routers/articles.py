@@ -1,3 +1,5 @@
+import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import cast, Date, func
@@ -9,6 +11,8 @@ from database import get_db, SessionLocal
 from models import Article, Preferences
 import rss_service
 import ai_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/articles", tags=["articles"])
 
@@ -87,15 +91,17 @@ def _fetch_and_process():
         raw_articles = rss_service.fetch_all_articles(preferred_tags=preferred_tags)
         saved = []
 
-        for a in raw_articles:
-            existing = db.query(Article).filter(Article.url == a["url"]).first()
-            if existing:
-                continue
-            article = Article(**a)
-            db.add(article)
+        # 既存URLを一括チェックしてバッチ挿入
+        urls = [a["url"] for a in raw_articles]
+        existing_urls = {
+            row.url
+            for row in db.query(Article.url).filter(Article.url.in_(urls)).all()
+        }
+        new_articles = [Article(**a) for a in raw_articles if a["url"] not in existing_urls]
+        if new_articles:
+            db.add_all(new_articles)
             db.commit()
-            db.refresh(article)
-            saved.append(article)
+        saved = new_articles
 
         # AI要約・タグ付け（未処理の今日の記事すべて対象）
         today = date.today()
@@ -104,13 +110,31 @@ def _fetch_and_process():
             .filter(sqlfunc.date(Article.fetched_at) == today, Article.summary == None)
             .all()
         )
-        for article in unsummarized:
-            result = ai_service.summarize_article(
-                title=article.title,
-                snippet=article.content_snippet or "",
-            )
-            article.summary = result["summary"]
-            article.tags = result["tags"]
+
+        # 並列でAI要約（DBアクセスなし、結果だけ収集）
+        def _summarize(article_id: int, title: str, snippet: str):
+            result = ai_service.summarize_article(title=title, snippet=snippet)
+            return article_id, result["summary"], result["tags"]
+
+        article_data = [(a.id, a.title, a.content_snippet or "") for a in unsummarized]
+        summary_results = []
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {
+                executor.submit(_summarize, aid, title, snippet): aid
+                for aid, title, snippet in article_data
+            }
+            for future in as_completed(futures):
+                try:
+                    summary_results.append(future.result())
+                except Exception as e:
+                    logger.error(f"Summarization failed: {e}")
+
+        # バッチ更新（1回のコミット）
+        if summary_results:
+            for article_id, summary, tags in summary_results:
+                db.query(Article).filter(Article.id == article_id).update(
+                    {"summary": summary, "tags": tags}
+                )
             db.commit()
 
         # 今日の全記事からおすすめ選定
