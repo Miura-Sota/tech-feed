@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import TodaysPicks from "./components/TodaysPicks";
 import ArticleList from "./components/ArticleList";
 
-const API_BASE = "";
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
 export default function App() {
   const [articles, setArticles] = useState([]);
