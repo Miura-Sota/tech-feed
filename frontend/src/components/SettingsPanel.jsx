@@ -81,6 +81,23 @@ export default function SettingsPanel({ preferences, onSave, tagFilterMode, onTa
     });
   };
 
+  const handleClearAll = async () => {
+    setSelectedTags(new Set());
+    setKeywords('');
+    onTagFilterModeChange('or');
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      await onSave({ preferred_tags: '', preferred_keywords: '' });
+      setSaveMsg('クリアしました');
+    } catch {
+      setSaveMsg('保存に失敗しました');
+    } finally {
+      setSaving(false);
+      setTimeout(() => setSaveMsg(null), 3000);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setSaveMsg(null);
@@ -115,9 +132,26 @@ export default function SettingsPanel({ preferences, onSave, tagFilterMode, onTa
           marginBottom: 20,
         }}
       >
-        <h3 style={{ fontSize: 15, fontWeight: 600, color: "#334155", marginBottom: 14 }}>
-          好みのタグ
-        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 600, color: "#334155", margin: 0 }}>
+            好みのタグ
+          </h3>
+          <button
+            onClick={handleClearAll}
+            disabled={saving || (selectedTags.size === 0 && !keywords)}
+            style={{
+              background: 'none',
+              border: '1px solid #cbd5e1',
+              borderRadius: 6,
+              padding: '3px 10px',
+              fontSize: 12,
+              color: selectedTags.size === 0 && !keywords ? '#94a3b8' : '#64748b',
+              cursor: selectedTags.size === 0 && !keywords ? 'not-allowed' : 'pointer',
+            }}
+          >
+            すべてクリア
+          </button>
+        </div>
         <div
           style={{
             display: "grid",

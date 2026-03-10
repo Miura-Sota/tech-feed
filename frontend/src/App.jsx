@@ -284,7 +284,7 @@ export default function App() {
         {/* タブ */}
         <div style={{ maxWidth: 900, margin: "12px auto 0", padding: "0 24px", display: "flex", gap: 4 }}>
           {[
-            { key: "today", label: "今日" },
+            { key: "today", label: "今日のおすすめ" },
             { key: "bookmarks", label: `ブックマーク ${bookmarkedArticles.length}件` },
             { key: "settings", label: preferredTagSet.size > 0 ? "設定 ⚙ ✓" : "設定 ⚙" },
           ].map(({ key, label }) => (
