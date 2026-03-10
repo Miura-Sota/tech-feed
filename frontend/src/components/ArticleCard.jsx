@@ -16,7 +16,7 @@ function tagColor(tag) {
   return TAG_COLORS[hash % TAG_COLORS.length];
 }
 
-export default function ArticleCard({ article }) {
+export default function ArticleCard({ article, onTagClick, selectedTag }) {
   const src = SOURCE_COLORS[article.source] ?? { bg: "#f5f5f5", border: "#999", text: "#555" };
   const tags = article.tags ? article.tags.split(",").map((t) => t.trim()).filter(Boolean) : [];
 
@@ -93,12 +93,15 @@ export default function ArticleCard({ article }) {
           {tags.map((tag) => (
             <span
               key={tag}
+              onClick={() => onTagClick?.(tag)}
               style={{
-                background: tagColor(tag),
+                background: selectedTag === tag ? "#3ea8ff" : tagColor(tag),
+                color: selectedTag === tag ? "#fff" : "#333",
                 borderRadius: 20,
                 fontSize: 12,
                 padding: "2px 10px",
-                color: "#333",
+                cursor: onTagClick ? "pointer" : "default",
+                transition: "background 0.15s",
               }}
             >
               {tag}

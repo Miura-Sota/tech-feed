@@ -1,8 +1,8 @@
 import React from "react";
 import ArticleCard from "./ArticleCard";
 
-export default function ArticleList({ articles }) {
-  const nonPicked = articles.filter((a) => !a.is_picked);
+export default function ArticleList({ articles, onTagClick, selectedTag, showAll }) {
+  const nonPicked = showAll ? articles : articles.filter((a) => !a.is_picked);
 
   if (nonPicked.length === 0) {
     return (
@@ -26,7 +26,7 @@ export default function ArticleList({ articles }) {
       </h2>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {nonPicked.map((article) => (
-          <ArticleCard key={article.id} article={article} />
+          <ArticleCard key={article.id} article={article} onTagClick={onTagClick} selectedTag={selectedTag} />
         ))}
       </div>
     </section>

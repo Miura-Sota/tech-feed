@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import TodaysPicks from "./components/TodaysPicks";
 import ArticleList from "./components/ArticleList";
 
@@ -10,6 +10,8 @@ export default function App() {
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [selectedTag, setSelectedTag] = useState(null);
 
   const loadTodayArticles = useCallback(async () => {
     setLoading(true);
@@ -36,7 +38,6 @@ export default function App() {
     try {
       const res = await fetch(`${API_BASE}/articles/fetch`, { method: "POST" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      // バックグラウンド処理なので少し待ってからリロード
       setTimeout(() => {
         loadTodayArticles();
         setFetching(false);
@@ -46,6 +47,36 @@ export default function App() {
       setFetching(false);
     }
   };
+
+  const handleTagClick = (tag) => {
+    setSelectedTag((prev) => (prev === tag ? null : tag));
+    setSearchText("");
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchText(e.target.value);
+    setSelectedTag(null);
+  };
+
+  const filteredArticles = useMemo(() => {
+    if (selectedTag) {
+      return articles.filter((a) =>
+        a.tags?.split(",").map((t) => t.trim()).includes(selectedTag)
+      );
+    }
+    if (searchText.trim()) {
+      const q = searchText.trim().toLowerCase();
+      return articles.filter(
+        (a) =>
+          a.title?.toLowerCase().includes(q) ||
+          a.summary?.toLowerCase().includes(q) ||
+          a.tags?.toLowerCase().includes(q)
+      );
+    }
+    return articles;
+  }, [articles, selectedTag, searchText]);
+
+  const isFiltering = selectedTag || searchText.trim();
 
   const today = new Date().toLocaleDateString("ja-JP", {
     year: "numeric",
@@ -124,6 +155,27 @@ export default function App() {
             </button>
           </div>
         </div>
+
+        {/* 検索バー */}
+        <div style={{ maxWidth: 900, margin: "16px auto 0", padding: "0 24px" }}>
+          <input
+            type="text"
+            placeholder="タイトル・要約・タグで検索..."
+            value={searchText}
+            onChange={handleSearchChange}
+            style={{
+              width: "100%",
+              padding: "10px 16px",
+              borderRadius: 8,
+              border: "1px solid #334155",
+              background: "#1e293b",
+              color: "#f1f5f9",
+              fontSize: 14,
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
       </header>
 
       {/* メインコンテンツ */}
@@ -150,7 +202,7 @@ export default function App() {
           </div>
         ) : (
           <>
-            {/* 統計バー */}
+            {/* 統計バー / フィルター表示 */}
             {articles.length > 0 && (
               <div
                 style={{
@@ -159,21 +211,55 @@ export default function App() {
                   padding: "14px 20px",
                   marginBottom: 28,
                   display: "flex",
-                  gap: 24,
+                  gap: 16,
                   fontSize: 14,
                   color: "#555",
                   boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                  flexWrap: "wrap",
+                  alignItems: "center",
                 }}
               >
-                <span>今日の記事: <strong>{articles.length}</strong> 件</span>
-                <span>Zenn: <strong>{articles.filter((a) => a.source === "zenn").length}</strong></span>
-                <span>Qiita: <strong>{articles.filter((a) => a.source === "qiita").length}</strong></span>
-                <span>おすすめ: <strong>{articles.filter((a) => a.is_picked).length}</strong></span>
+                {isFiltering ? (
+                  <>
+                    <span>
+                      {selectedTag ? `タグ: ` : `検索: `}
+                      <strong>{selectedTag || searchText}</strong>
+                      {` → ${filteredArticles.length}件`}
+                    </span>
+                    <button
+                      onClick={() => { setSelectedTag(null); setSearchText(""); }}
+                      style={{
+                        background: "#f1f5f9",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: 6,
+                        padding: "2px 10px",
+                        fontSize: 12,
+                        cursor: "pointer",
+                        color: "#475569",
+                      }}
+                    >
+                      クリア
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span>今日の記事: <strong>{articles.length}</strong> 件</span>
+                    <span>Zenn: <strong>{articles.filter((a) => a.source === "zenn").length}</strong></span>
+                    <span>Qiita: <strong>{articles.filter((a) => a.source === "qiita").length}</strong></span>
+                    <span>おすすめ: <strong>{articles.filter((a) => a.is_picked).length}</strong></span>
+                  </>
+                )}
               </div>
             )}
 
-            <TodaysPicks articles={articles} />
-            <ArticleList articles={articles} />
+            {isFiltering ? (
+              <ArticleList articles={filteredArticles} onTagClick={handleTagClick} selectedTag={selectedTag} showAll />
+            ) : (
+              <>
+                <TodaysPicks articles={articles} onTagClick={handleTagClick} selectedTag={selectedTag} />
+                <ArticleList articles={articles} onTagClick={handleTagClick} selectedTag={selectedTag} />
+              </>
+            )}
           </>
         )}
       </main>
