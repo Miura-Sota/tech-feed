@@ -8,7 +8,7 @@ const ALL_TAGS = [
   "パフォーマンス", "テスト", "設計",
 ];
 
-export default function SettingsPanel({ preferences, onSave, tagFilterMode, onTagFilterModeChange }) {
+export default function SettingsPanel({ preferences, onSave, tagFilterMode, onTagFilterModeChange, isAdmin }) {
   const [selectedTags, setSelectedTags] = useState(new Set());
   const [keywords, setKeywords] = useState("");
   const [saveMsg, setSaveMsg] = useState(null);
@@ -118,9 +118,11 @@ export default function SettingsPanel({ preferences, onSave, tagFilterMode, onTa
   return (
     <div>
       <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1a1a2e", marginBottom: 20 }}>
-        好みのタグ・キーワード設定
+        {isAdmin ? "好みのタグ・キーワード設定" : "設定"}
       </h2>
 
+      {isAdmin && (
+      <>
       {/* タグチェックボックス */}
       <div
         style={{
@@ -270,6 +272,38 @@ export default function SettingsPanel({ preferences, onSave, tagFilterMode, onTa
         />
       </div>
 
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{
+            background: saving ? "#94a3b8" : "#3ea8ff",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "10px 28px",
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: saving ? "not-allowed" : "pointer",
+          }}
+        >
+          {saving ? "保存中..." : "保存"}
+        </button>
+        {saveMsg && (
+          <span
+            style={{
+              fontSize: 14,
+              color: saveMsg === "保存しました" ? "#16a34a" : "#dc2626",
+              fontWeight: 600,
+            }}
+          >
+            {saveMsg}
+          </span>
+        )}
+      </div>
+      </>
+      )}
+
       {/* カスタムフィード */}
       <div
         style={{
@@ -401,37 +435,6 @@ export default function SettingsPanel({ preferences, onSave, tagFilterMode, onTa
           <p style={{ fontSize: 13, color: feedMsg.includes("失敗") ? "#dc2626" : "#16a34a", marginTop: 8, fontWeight: 600 }}>
             {feedMsg}
           </p>
-        )}
-      </div>
-
-      {/* 保存ボタン */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          style={{
-            background: saving ? "#94a3b8" : "#3ea8ff",
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            padding: "10px 28px",
-            fontSize: 14,
-            fontWeight: 700,
-            cursor: saving ? "not-allowed" : "pointer",
-          }}
-        >
-          {saving ? "保存中..." : "保存"}
-        </button>
-        {saveMsg && (
-          <span
-            style={{
-              fontSize: 14,
-              color: saveMsg === "保存しました" ? "#16a34a" : "#dc2626",
-              fontWeight: 600,
-            }}
-          >
-            {saveMsg}
-          </span>
         )}
       </div>
     </div>

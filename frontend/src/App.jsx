@@ -42,8 +42,7 @@ export default function App() {
   const handleAuth = useCallback((userData) => {
     setAuthUser(userData);
     localStorage.setItem(LS_USER, JSON.stringify(userData));
-    // reset state for new user
-    setArticles([]);
+    // reset state for new user（今日の記事は認証不要・共通のためクリアしない）
     setReadIds(new Set());
     setBookmarkedArticles([]);
     setPreferences({ preferred_tags: "", preferred_keywords: "" });
@@ -93,7 +92,7 @@ export default function App() {
   }, [loadTodayArticles]);
 
   useEffect(() => {
-    if (!authUser) return;
+    if (!authUser || !authUser.is_admin) return;
     apiFetch("/settings/preferences")
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data) setPreferences(data); })
@@ -132,14 +131,14 @@ export default function App() {
   }, []);
 
   const preferredTagSet = useMemo(() => {
-    if (!preferences.preferred_tags) return new Set();
+    if (!authUser?.is_admin || !preferences.preferred_tags) return new Set();
     return new Set(preferences.preferred_tags.split(",").map((t) => t.trim()).filter(Boolean));
-  }, [preferences.preferred_tags]);
+  }, [authUser?.is_admin, preferences.preferred_tags]);
 
   const preferredKeywordSet = useMemo(() => {
-    if (!preferences.preferred_keywords) return new Set();
+    if (!authUser?.is_admin || !preferences.preferred_keywords) return new Set();
     return new Set(preferences.preferred_keywords.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean));
-  }, [preferences.preferred_keywords]);
+  }, [authUser?.is_admin, preferences.preferred_keywords]);
 
   const handleFetch = async () => {
     setFetching(true);
@@ -440,6 +439,7 @@ export default function App() {
             onSave={handleSavePreferences}
             tagFilterMode={tagFilterMode}
             onTagFilterModeChange={handleTagFilterModeChange}
+            isAdmin={authUser?.is_admin}
           />
         ) : loading && activeTab === "today" ? (
           <div style={{ textAlign: "center", padding: 60, color: "#64748b" }}>
