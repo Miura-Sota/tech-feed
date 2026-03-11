@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 _DEFAULT_CORS_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
+    "https://tech-feed.onrender.com",
+    "https://tech-feed-frontend.onrender.com",
     "https://tech-feed-frontend-7v22.onrender.com",
 ]
 

@@ -10,7 +10,7 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false  # Renderのダッシュボードで手動設定
       - key: CORS_ORIGINS
-        value: http://localhost:5173,http://localhost:3000,https://tech-feed-frontend-7v22.onrender.com
+        value: http://localhost:5173,http://localhost:3000,https://tech-feed.onrender.com,https://tech-feed-frontend.onrender.com,https://tech-feed-frontend-7v22.onrender.com
       - key: DB_PATH
         value: /data/tech_feed.db
     disk:
