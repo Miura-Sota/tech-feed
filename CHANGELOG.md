@@ -11,6 +11,11 @@
 - 初回登録ユーザーを自動的に管理者にする（`backend/routers/auth.py`）
 - 認証 API のテスト（`backend/tests/test_auth.py`）
 
+### Changed
+
+- Daily Fetch ワークフロー: Render コールドスタート対応（5回リトライ・エラー時に HTTP ステータス表示）
+- Daily Fetch: API_URL 未設定時・ログイン/フェッチ失敗時のエラーメッセージを改善
+
 ### Fixed
 
 - 非管理者・ゲスト向けの空状態メッセージを修正（「毎朝7時に自動取得されます。」に変更）

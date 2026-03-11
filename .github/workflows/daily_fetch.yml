@@ -11,14 +11,55 @@ jobs:
     steps:
       - name: Login and fetch
         run: |
-          TOKEN=$(curl -sf -X POST "${{ secrets.API_URL }}/auth/login" \
-            -H "Content-Type: application/json" \
-            -d '{"email":"${{ secrets.ADMIN_EMAIL }}","password":"${{ secrets.ADMIN_PASSWORD }}"}' \
-            | jq -r .access_token)
-          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-            echo "ERROR: Failed to obtain token"
+          set -e
+          API_URL="${{ secrets.API_URL }}"
+          if [ -z "$API_URL" ]; then
+            echo "ERROR: API_URL secret is not set. Add it in Settings → Secrets and variables → Actions"
             exit 1
           fi
-          curl -sf -X POST "${{ secrets.API_URL }}/articles/fetch" \
-            -H "Authorization: Bearer $TOKEN"
-          echo "Fetch triggered successfully"
+
+          # Render のコールドスタート対応: 最大5回リトライ（約2.5分待機）
+          echo "Attempting login..."
+          LOGIN_JSON=$(jq -n --arg e "${{ secrets.ADMIN_EMAIL }}" --arg p "${{ secrets.ADMIN_PASSWORD }}" '{email:$e,password:$p}')
+          TOKEN=""
+          for i in 1 2 3 4 5; do
+            RESP=$(curl -s -w "\n%{http_code}" -X POST "${API_URL}/auth/login" \
+              -H "Content-Type: application/json" \
+              -d "$LOGIN_JSON" \
+              --connect-timeout 30 --max-time 120) || true
+            HTTP_CODE=$(echo "$RESP" | tail -1)
+            BODY=$(echo "$RESP" | sed '$d')
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              TOKEN=$(echo "$BODY" | jq -r .access_token)
+              if [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ]; then
+                echo "Login successful (attempt $i)"
+                break
+              fi
+            fi
+
+            echo "Login failed (attempt $i): HTTP $HTTP_CODE - $BODY"
+            if [ "$i" -lt 5 ]; then
+              echo "Retrying in 30s (Render cold start may need time)..."
+              sleep 30
+            fi
+          done
+
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "ERROR: Failed to obtain token after 5 attempts. Check ADMIN_EMAIL, ADMIN_PASSWORD, and API_URL."
+            exit 1
+          fi
+
+          echo "Triggering fetch..."
+          FETCH_RESP=$(curl -s -w "\n%{http_code}" -X POST "${API_URL}/articles/fetch" \
+            -H "Authorization: Bearer $TOKEN" \
+            --connect-timeout 30 --max-time 120)
+          FETCH_CODE=$(echo "$FETCH_RESP" | tail -1)
+          FETCH_BODY=$(echo "$FETCH_RESP" | sed '$d')
+
+          if [ "$FETCH_CODE" = "200" ]; then
+            echo "Fetch triggered successfully: $FETCH_BODY"
+          else
+            echo "ERROR: Fetch failed (HTTP $FETCH_CODE): $FETCH_BODY"
+            exit 1
+          fi
