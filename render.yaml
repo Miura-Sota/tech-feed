@@ -24,7 +24,7 @@ services:
     buildCommand: npm install && npm run build
     envVars:
       - key: VITE_API_URL
-        value: https://tech-feed-backend.onrender.com
+        value: https://tech-feed.onrender.com
     staticPublishPath: dist
     routes:
       - type: rewrite
