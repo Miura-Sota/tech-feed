@@ -55,6 +55,7 @@ export default function App() {
     setAuthUser(null);
     setReadIds(new Set());
     setBookmarkedArticles([]);
+    setActiveTab("today");
   }, []);
 
   // 401 イベントで自動ログアウト
