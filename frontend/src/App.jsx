@@ -387,7 +387,7 @@ export default function App() {
           {[
             { key: "today", label: "今日のおすすめ" },
             { key: "bookmarks", label: `ブックマーク ${bookmarkedArticles.length}件` },
-            { key: "settings", label: preferredTagSet.size > 0 ? "設定 ⚙ ✓" : "設定 ⚙" },
+            ...(authUser?.is_admin ? [{ key: "settings", label: preferredTagSet.size > 0 ? "設定 ⚙ ✓" : "設定 ⚙" }] : []),
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -433,7 +433,7 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === "settings" ? (
+        {activeTab === "settings" && authUser?.is_admin ? (
           <SettingsPanel
             preferences={preferences}
             onSave={handleSavePreferences}
