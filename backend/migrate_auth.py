@@ -78,6 +78,16 @@ def migrate():
     else:
         print("read_marks テーブルは未作成（サーバー起動時に自動作成されます）")
 
+    # articles に is_picked_admin 追加（管理者向けピック用）
+    if table_exists(cur, "articles"):
+        if not column_exists(cur, "articles", "is_picked_admin"):
+            cur.execute("ALTER TABLE articles ADD COLUMN is_picked_admin BOOLEAN NOT NULL DEFAULT 0")
+            print("articles.is_picked_admin 追加")
+        else:
+            print("articles.is_picked_admin は既に存在")
+    else:
+        print("articles テーブルは未作成（サーバー起動時に自動作成されます）")
+
     conn.commit()
     conn.close()
     print("移行完了")

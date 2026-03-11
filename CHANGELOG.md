@@ -11,8 +11,15 @@
 - 初回登録ユーザーを自動的に管理者にする（`backend/routers/auth.py`）
 - 認証 API のテスト（`backend/tests/test_auth.py`）
 
+### Added
+
+- 記事APIの認証別テスト（`backend/tests/test_articles.py`）
+- `articles.is_picked_admin` カラム（マイグレーション: `python migrate_auth.py`）
+
 ### Changed
 
+- **記事・ピックの管理者/ゲスト分離**: 7時フェッチで管理者のフィード・タグ・キーワードは管理者のみに反映。ゲスト・非管理者はデフォルト（Zenn/Qiita）のみ表示、純AI選定。管理者はカスタムフィード含め、好みを考慮した選定
+- カスタムRSSフィードを管理者限定に（非管理者は設定UI非表示、7時フェッチにも管理者のフィードのみ使用）
 - 好みタグ・キーワードを管理者限定に（非管理者は設定UI非表示、フィルタ/ハイライト無効）
 - CORS オリジンを環境変数 `CORS_ORIGINS`（カンマ区切り）で設定可能に
 - Daily Fetch ワークフロー: Render コールドスタート対応（5回リトライ・エラー時に HTTP ステータス表示）

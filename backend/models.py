@@ -69,6 +69,7 @@ class Article(Base):
     content_snippet = Column(Text)
     summary = Column(Text)
     tags = Column(String(500))
-    is_picked = Column(Boolean, default=False)
+    is_picked = Column(Boolean, default=False)  # ゲスト・非管理者向け（純AI選択）
+    is_picked_admin = Column(Boolean, default=False)  # 管理者向け（フィード・タグ考慮）
     fetched_at = Column(DateTime(timezone=True), server_default=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())

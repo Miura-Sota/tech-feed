@@ -78,7 +78,9 @@ def get_feeds(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """カスタムフィード一覧を返す"""
+    """カスタムフィード一覧を返す（管理者のみ）"""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
     return (
         db.query(Feed)
         .filter(Feed.user_id == current_user.id)
@@ -93,7 +95,9 @@ def add_feed(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """カスタムフィード追加"""
+    """カスタムフィード追加（管理者のみ）"""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
     feed = Feed(user_id=current_user.id, name=body.name, url=body.url)
     db.add(feed)
     db.commit()
@@ -107,7 +111,9 @@ def delete_feed(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """カスタムフィード削除"""
+    """カスタムフィード削除（管理者のみ）"""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
     feed = db.query(Feed).filter(Feed.id == feed_id, Feed.user_id == current_user.id).first()
     if not feed:
         raise HTTPException(status_code=404, detail="Feed not found")
@@ -122,7 +128,9 @@ def toggle_feed(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """フィードの有効/無効をトグル"""
+    """フィードの有効/無効をトグル（管理者のみ）"""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
     feed = db.query(Feed).filter(Feed.id == feed_id, Feed.user_id == current_user.id).first()
     if not feed:
         raise HTTPException(status_code=404, detail="Feed not found")

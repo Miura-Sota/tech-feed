@@ -304,7 +304,9 @@ export default function SettingsPanel({ preferences, onSave, tagFilterMode, onTa
       </>
       )}
 
-      {/* カスタムフィード */}
+      {isAdmin && (
+      <>
+      {/* カスタムフィード（管理者のみ） */}
       <div
         style={{
           background: "#fff",
@@ -437,6 +439,8 @@ export default function SettingsPanel({ preferences, onSave, tagFilterMode, onTa
           </p>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }

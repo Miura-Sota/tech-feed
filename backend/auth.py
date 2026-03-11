@@ -59,3 +59,17 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
+
+
+def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    """認証されていればUserを、されていなければNoneを返す（401は返さない）"""
+    if credentials is None:
+        return None
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+    except jwt.exceptions.InvalidTokenError:
+        return None
+    return db.query(User).filter(User.id == int(payload["sub"]), User.is_active == True).first()
