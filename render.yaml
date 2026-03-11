@@ -22,6 +22,9 @@ services:
     runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
+    envVars:
+      - key: VITE_API_URL
+        value: https://tech-feed-backend.onrender.com
     staticPublishPath: dist
     routes:
       - type: rewrite
