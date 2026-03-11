@@ -7,11 +7,6 @@
 - **関連ファイル**: `backend/routers/auth.py`, `frontend/src/components/AuthPage.jsx`
 - **検討案**: メール送信（SendGrid等）でリセットリンク / 管理者による手動リセット
 
-### [ ] #5 CORS オリジンの環境変数化
-- **背景**: `main.py` の `ALLOWED_ORIGINS` がハードコード。本番フロントの URL が変わったら要修正
-- **関連ファイル**: `backend/main.py`, `render.yaml`
-- **修正方針**: 環境変数 `CORS_ORIGINS` で渡す（カンマ区切り）
-
 ### [ ] #6 ログイン・登録 API のレート制限
 - **背景**: ブルートフォース攻撃への対策がない
 - **関連ファイル**: `backend/routers/auth.py`, `backend/main.py`
@@ -25,6 +20,11 @@
 ---
 
 ## 完了
+
+### [x] #5 CORS オリジンの環境変数化
+- **背景**: `main.py` の `ALLOWED_ORIGINS` がハードコード。本番フロントの URL が変わったら要修正
+- **関連ファイル**: `backend/main.py`, `render.yaml`
+- **修正**: 環境変数 `CORS_ORIGINS`（カンマ区切り）で設定可能に
 
 ### [x] #1 管理者ユーザーを決める仕組みを実装する
 - **背景**: `is_admin` フィールドは DB に存在するが、設定手段がない（DB直接操作のみ）

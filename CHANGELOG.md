@@ -13,6 +13,7 @@
 
 ### Changed
 
+- CORS オリジンを環境変数 `CORS_ORIGINS`（カンマ区切り）で設定可能に
 - Daily Fetch ワークフロー: Render コールドスタート対応（5回リトライ・エラー時に HTTP ステータス表示）
 - Daily Fetch: API_URL 未設定時・ログイン/フェッチ失敗時のエラーメッセージを改善
 

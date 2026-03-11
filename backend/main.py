@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv, find_dotenv
 from fastapi import FastAPI, Request
@@ -17,6 +18,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+_DEFAULT_CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://tech-feed-frontend-7v22.onrender.com",
+]
+
+
+def _parse_cors_origins() -> list[str]:
+    raw = os.environ.get("CORS_ORIGINS")
+    if not raw:
+        return _DEFAULT_CORS_ORIGINS
+    return [o.strip() for o in raw.split(",") if o.strip()]
+
+
+ALLOWED_ORIGINS = _parse_cors_origins()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,12 +48,6 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan,
 )
-
-ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "https://tech-feed-frontend-7v22.onrender.com",
-]
 
 app.add_middleware(
     CORSMiddleware,
