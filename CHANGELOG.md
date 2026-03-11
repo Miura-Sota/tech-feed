@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `.cursor/rules/ai-instructions.mdc` - AI への指示書（Plan-Act-Reflect、YAGNI/KISS/DRY/OAOO 等）
+
 ## [0.6.0] - 2026-03-11
 
 本番安定化・Python 3.14 対応
