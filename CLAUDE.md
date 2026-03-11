@@ -115,7 +115,7 @@ Zenn/QiitaのRSSをAIで要約・タグ付け・ピックアップし、毎朝�
 
 - バックエンド (`backend/`) と フロントエンド (`frontend/`) の2層構成
 - 記事フェッチは GitHub Actions が毎朝7時 JST に `POST /articles/fetch` を叩いて実行
-- SQLiteをDBに使用。本番（Render）ではDBファイルを永続ディスクに保存
+- DB は PostgreSQL（本番は Neon 等）。未設定時はローカル SQLite をフォールバック使用
 
 ## 技術スタック
 
@@ -123,7 +123,7 @@ Zenn/QiitaのRSSをAIで要約・タグ付け・ピックアップし、毎朝�
 |---|---|
 | フロントエンド | React 18 + Vite |
 | バックエンド | FastAPI + Uvicorn |
-| DB | SQLite + SQLAlchemy 2.x |
+| DB | PostgreSQL（psycopg2）+ SQLAlchemy 2.x。未設定時は SQLite |
 | AI | Claude Haiku (`claude-haiku-4-5-20251001`) |
 | RSS取得 | feedparser（ThreadPoolExecutorで並列取得） |
 | 認証 | JWT（PyJWT + bcrypt）、7日有効、localStorageに保存 |
@@ -142,7 +142,6 @@ tech-feed/
 │   ├── auth.py           # JWT 生成・検証、get_current_user 依存関係
 │   ├── rss_service.py    # RSS 並列フェッチ・タグ別フィード構築
 │   ├── ai_service.py     # Claude API（要約・タグ付け・ピックアップ）
-│   ├── migrate_auth.py   # 初回 DB マイグレーション
 │   └── requirements.txt
 ├── frontend/
 │   └── src/

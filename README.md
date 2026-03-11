@@ -9,7 +9,7 @@ Zenn/QiitaのRSS記事をAIが要約・タグ付け・ピックアップして�
 |---|---|
 | フロントエンド | React + Vite |
 | バックエンド | FastAPI |
-| DB | SQLite + SQLAlchemy |
+| DB | PostgreSQL（Neon 等）+ SQLAlchemy。ローカルは SQLite 可 |
 | AI | Claude Haiku (Anthropic) |
 | RSS取得 | feedparser |
 | 認証 | JWT (PyJWT + passlib/bcrypt) |
@@ -48,6 +48,7 @@ cp .env.example .env
 # .env を編集して以下を設定:
 #   ANTHROPIC_API_KEY=...
 #   JWT_SECRET_KEY=<ランダムな長い文字列>
+#   DATABASE_URL=postgresql://...  （未設定時はローカル SQLite を使用）
 ```
 
 ### 2. バックエンド起動
@@ -57,9 +58,10 @@ cd backend
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-python migrate_auth.py    # DBマイグレーション（初回のみ）
 uvicorn main:app --reload
 ```
+
+テーブルは起動時に自動作成される。
 
 バックエンドは http://localhost:8000 で起動。APIドキュメント: http://localhost:8000/docs
 
@@ -94,6 +96,15 @@ npm run dev
 | `ADMIN_PASSWORD` | 管理者アカウントのパスワード |
 
 手動実行: Actions タブ → Daily Fetch → Run workflow
+
+---
+
+## 本番デプロイ（Render + Neon）
+
+1. [neon.tech](https://neon.tech) でサインアップし、プロジェクト作成
+2. 接続文字列（Connection string）をコピー
+3. Render の tech-feed-backend サービス → Environment → `DATABASE_URL` に貼り付け
+4. デプロイ。テーブルは起動時に自動作成される
 
 ---
 
@@ -156,7 +167,6 @@ tech-feed/
     database.py        - DB接続・セッション
     models.py          - User, Article, Feed, Preferences, Bookmark, ReadMark モデル
     auth.py            - JWT生成・検証・get_current_user依存関係
-    migrate_auth.py    - SQLiteマイグレーションスクリプト（初回のみ実行）
     rss_service.py     - RSS取得 (feedparser, タグ別・カスタムフィード対応)
     ai_service.py      - Claude API (要約・タグ・ピックアップ)
     routers/
