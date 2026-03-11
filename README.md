@@ -76,20 +76,7 @@ npm run dev
 ### 4. 初回ユーザー設定
 
 1. http://localhost:5173 を開き「新規登録」でアカウントを作成
-2. 最初のユーザー（id=1）を管理者に昇格:
-
-```bash
-# backend/ ディレクトリで
-python -c "
-import sqlite3
-conn = sqlite3.connect('tech_feed.db')
-conn.execute('UPDATE users SET is_admin=1 WHERE id=1')
-conn.commit()
-print('Done')
-"
-```
-
-管理者はヘッダーに「今すぐ取得」ボタンが表示される。
+2. **初回登録ユーザーは自動的に管理者**になる。ヘッダーに「今すぐ取得」ボタンが表示される
 
 ---
 

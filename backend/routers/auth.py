@@ -35,6 +35,10 @@ class MeOut(BaseModel):
         from_attributes = True
 
 
+def _is_first_user(db: Session) -> bool:
+    return db.query(User).count() == 0
+
+
 @router.post("/register", response_model=AuthOut, status_code=201)
 def register(body: RegisterIn, db: Session = Depends(get_db)):
     if len(body.password) < 8:
@@ -42,7 +46,8 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.email == body.email).first()
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")
-    user = User(email=body.email, hashed_password=hash_password(body.password))
+    is_admin = _is_first_user(db)
+    user = User(email=body.email, hashed_password=hash_password(body.password), is_admin=is_admin)
     db.add(user)
     db.commit()
     db.refresh(user)

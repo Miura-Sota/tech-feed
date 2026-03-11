@@ -7,6 +7,13 @@
 ### Added
 
 - `.cursor/rules/ai-instructions.mdc` - AI への指示書（Plan-Act-Reflect、YAGNI/KISS/DRY/OAOO 等）
+- ArticleList の空状態メッセージ切り替えテスト（vitest + @testing-library/react）
+- 初回登録ユーザーを自動的に管理者にする（`backend/routers/auth.py`）
+- 認証 API のテスト（`backend/tests/test_auth.py`）
+
+### Fixed
+
+- 非管理者・ゲスト向けの空状態メッセージを修正（「毎朝7時に自動取得されます。」に変更）
 
 ## [0.6.0] - 2026-03-11
 

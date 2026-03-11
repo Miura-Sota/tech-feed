@@ -3,7 +3,10 @@ import ArticleCard from "./ArticleCard";
 
 const PAGE_SIZE = 50;
 
-export default function ArticleList({ articles, onTagClick, selectedTag, showAll, readIds, bookmarkedIds, onRead, onBookmark, emptyMessage, preferredTagSet, preferredKeywordSet }) {
+const DEFAULT_EMPTY_ADMIN = "記事がありません。「今すぐ取得」ボタンで記事を取得してください。";
+const DEFAULT_EMPTY_GUEST = "記事はまだありません。毎朝7時に自動取得されます。";
+
+export default function ArticleList({ articles, onTagClick, selectedTag, showAll, readIds, bookmarkedIds, onRead, onBookmark, emptyMessage, isAdmin, preferredTagSet, preferredKeywordSet }) {
   const nonPicked = showAll ? articles : articles.filter((a) => !a.is_picked);
   const [displayLimit, setDisplayLimit] = useState(PAGE_SIZE);
 
@@ -18,7 +21,7 @@ export default function ArticleList({ articles, onTagClick, selectedTag, showAll
   if (nonPicked.length === 0) {
     return (
       <p style={{ color: "#888", textAlign: "center", padding: 32 }}>
-        {emptyMessage ?? "記事がありません。「今すぐ取得」ボタンで記事を取得してください。"}
+        {emptyMessage ?? (isAdmin ? DEFAULT_EMPTY_ADMIN : DEFAULT_EMPTY_GUEST)}
       </p>
     );
   }

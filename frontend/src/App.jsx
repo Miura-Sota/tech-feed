@@ -530,6 +530,7 @@ export default function App() {
                 bookmarkedIds={bookmarkedIds}
                 onRead={handleRead}
                 onBookmark={handleBookmark}
+                isAdmin={authUser?.is_admin}
                 preferredTagSet={preferredTagSet}
                 preferredKeywordSet={preferredKeywordSet}
               />
@@ -554,6 +555,7 @@ export default function App() {
                   bookmarkedIds={bookmarkedIds}
                   onRead={handleRead}
                   onBookmark={handleBookmark}
+                  isAdmin={authUser?.is_admin}
                   preferredTagSet={preferredTagSet}
                   preferredKeywordSet={preferredKeywordSet}
                 />
