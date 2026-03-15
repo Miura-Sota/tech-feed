@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from typing import List
 from pydantic import BaseModel
 
@@ -14,6 +14,8 @@ import ai_service
 from auth import get_current_user, get_current_user_optional
 
 logger = logging.getLogger(__name__)
+
+JST = timezone(timedelta(hours=9))
 
 router = APIRouter(prefix="/articles", tags=["articles"])
 
@@ -75,10 +77,10 @@ def get_today_articles(
     current_user: User | None = Depends(get_current_user_optional),
 ):
     """当日取得した記事を返す。管理者は全ソース、それ以外はデフォルトのみ"""
-    today = date.today()
+    today = datetime.now(JST).date()
     is_admin = current_user is not None and current_user.is_admin
     pick_col = Article.is_picked_admin if is_admin else Article.is_picked
-    q = db.query(Article).filter(func.date(Article.fetched_at) == today)
+    q = db.query(Article).filter(func.date(Article.fetched_at + timedelta(hours=9)) == today)
     if not is_admin:
         q = q.filter(Article.source.in_(list(DEFAULT_SOURCES)))
     articles = q.order_by(pick_col.desc(), Article.fetched_at.desc()).all()
@@ -91,9 +93,9 @@ def get_picks(
     current_user: User | None = Depends(get_current_user_optional),
 ):
     """今日のおすすめ記事を返す。管理者は管理者用ピック、それ以外はゲスト用ピック"""
-    today = date.today()
+    today = datetime.now(JST).date()
     is_admin = current_user is not None and current_user.is_admin
-    q = db.query(Article).filter(func.date(Article.fetched_at) == today)
+    q = db.query(Article).filter(func.date(Article.fetched_at + timedelta(hours=9)) == today)
     if is_admin:
         q = q.filter(Article.is_picked_admin == True)
     else:
@@ -125,7 +127,7 @@ def _fetch_and_process():
     from sqlalchemy import func as sqlfunc
     db = SessionLocal()
     try:
-        today = date.today()
+        today = datetime.now(JST).date()
 
         # 1) デフォルト + 管理者カスタムフィードを取得
         custom_feeds = [
@@ -147,7 +149,7 @@ def _fetch_and_process():
         # 2) AI要約・タグ付け（未処理の今日の記事）
         unsummarized = (
             db.query(Article)
-            .filter(sqlfunc.date(Article.fetched_at) == today, Article.summary == None)
+            .filter(sqlfunc.date(Article.fetched_at + timedelta(hours=9)) == today, Article.summary == None)
             .all()
         )
         def _summarize(article_id: int, title: str, snippet: str):
@@ -175,14 +177,14 @@ def _fetch_and_process():
 
         # 3) ゲスト向けピック: デフォルトソースのみ、純AI
         default_articles = list(db.query(Article).filter(
-            sqlfunc.date(Article.fetched_at) == today,
+            sqlfunc.date(Article.fetched_at + timedelta(hours=9)) == today,
             Article.source.in_(list(DEFAULT_SOURCES)),
         ).all())
         if default_articles:
             dicts = [{"title": a.title, "source": a.source, "summary": a.summary, "tags": a.tags} for a in default_articles]
             pick_indices = ai_service.pick_top_articles(dicts, preferred_tags="", preferred_keywords="")
             pick_ids = {default_articles[i].id for i in pick_indices}
-            db.query(Article).filter(sqlfunc.date(Article.fetched_at) == today).update({"is_picked": False}, synchronize_session=False)
+            db.query(Article).filter(sqlfunc.date(Article.fetched_at + timedelta(hours=9)) == today).update({"is_picked": False}, synchronize_session=False)
             if pick_ids:
                 db.query(Article).filter(Article.id.in_(pick_ids)).update({"is_picked": True}, synchronize_session=False)
             db.commit()
@@ -192,12 +194,12 @@ def _fetch_and_process():
         preferred_tags = (admin_prefs.preferred_tags or "") if admin_prefs else ""
         preferred_keywords = (admin_prefs.preferred_keywords or "") if admin_prefs else ""
 
-        all_today = list(db.query(Article).filter(sqlfunc.date(Article.fetched_at) == today).all())
+        all_today = list(db.query(Article).filter(sqlfunc.date(Article.fetched_at + timedelta(hours=9)) == today).all())
         if all_today:
             dicts = [{"title": a.title, "source": a.source, "summary": a.summary, "tags": a.tags} for a in all_today]
             pick_indices = ai_service.pick_top_articles(dicts, preferred_tags=preferred_tags, preferred_keywords=preferred_keywords)
             pick_ids = {all_today[i].id for i in pick_indices}
-            db.query(Article).filter(sqlfunc.date(Article.fetched_at) == today).update({"is_picked_admin": False}, synchronize_session=False)
+            db.query(Article).filter(sqlfunc.date(Article.fetched_at + timedelta(hours=9)) == today).update({"is_picked_admin": False}, synchronize_session=False)
             if pick_ids:
                 db.query(Article).filter(Article.id.in_(pick_ids)).update({"is_picked_admin": True}, synchronize_session=False)
             db.commit()

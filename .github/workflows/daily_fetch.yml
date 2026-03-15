@@ -2,7 +2,7 @@ name: Daily Fetch
 
 on:
   schedule:
-    - cron: "0 22 * * *"  # 22:00 UTC = 07:00 JST
+    - cron: "50 21 * * *"  # 21:50 UTC = 06:50 JST（遅延考慮で7時前に完了させる）
   workflow_dispatch:  # 手動実行も可能
 
 jobs:

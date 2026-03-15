@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **#8 記事が9時以降に表示されなくなるバグ修正**: `fetched_at` はUTC保存のため、9:00 JST（= 0:00 UTC）を過ぎると日付フィルタがずれて当日記事が取得されなくなっていた。`date.today()` を `datetime.now(JST).date()` に、`func.date(Article.fetched_at)` を `func.date(Article.fetched_at + timedelta(hours=9))` に変更してJST基準で比較するよう修正（`backend/routers/articles.py`）
+- **#8 GitHub Actions cron を6:50 JSTに前倒し**: 遅延考慮で7時前に完了させるよう `0 22 * * *` → `50 21 * * *` に変更（`.github/workflows/daily_fetch.yml`）
+
 ### Added
 
 - `.cursor/rules/ai-instructions.mdc` - AI への指示書（Plan-Act-Reflect、YAGNI/KISS/DRY/OAOO 等）
